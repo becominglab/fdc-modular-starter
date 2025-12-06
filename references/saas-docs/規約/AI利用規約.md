@@ -128,7 +128,7 @@
 
 AI機能に関するお問い合わせは、以下までご連絡ください：
 
-- サポートメール: mochizuki@5dmgmt.com
+- サポートメール: admin@example.com
 
 ---
 

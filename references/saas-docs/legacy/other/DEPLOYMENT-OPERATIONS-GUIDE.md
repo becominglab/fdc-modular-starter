@@ -109,11 +109,11 @@ Git の author 設定を行う：
 
 ```bash
 git config user.name "Takao Mochizuki"
-git config user.email "mochizuki@5dmgmt.com"
+git config user.email "admin@example.com"
 
 # グローバル設定（すべてのリポジトリに適用）
 git config --global user.name "Takao Mochizuki"
-git config --global user.email "mochizuki@5dmgmt.com"
+git config --global user.email "admin@example.com"
 ```
 
 #### 📝 再発防止策
@@ -465,7 +465,7 @@ vercel rollback <previous-deployment-id>
 vercel logs --prod | grep -i error
 
 # 3. 管理者に報告
-# security@5dmgmt.com
+# security@example.com
 ```
 
 ### ケース 2: データベース接続エラー

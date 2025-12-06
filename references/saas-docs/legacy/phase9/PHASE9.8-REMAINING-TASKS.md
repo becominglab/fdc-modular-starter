@@ -611,7 +611,7 @@ export async function saveData(data: AppData): Promise<void> {
 
 1. **Admin Seed スクリプト作成**
    - スクリプト: `scripts/seed-admin.ts`
-   - 対象ユーザー: `mochizuki@5dmgmt.com`
+   - 対象ユーザー: `admin@example.com`
    - 実行タイミング: 初回ログイン後
    - 完了日: 2025-01-24
 

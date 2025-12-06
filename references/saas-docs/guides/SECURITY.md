@@ -749,7 +749,7 @@ describe("マルチテナント分離", () => {
 
 セキュリティ脆弱性を発見した場合は、以下の手順で報告してください。
 
-1. **報告先**: `security@5dmgmt.com`（非公開）
+1. **報告先**: `security@example.com`（非公開）
 2. **報告内容**:
    - 脆弱性の詳細（再現手順）
    - 影響範囲（CVSS スコア）
@@ -810,7 +810,7 @@ describe("マルチテナント分離", () => {
 
 | 変数名 | 説明 | デフォルト値 | 例 | Phase |
 |--------|------|------------|-----|-------|
-| `ADMIN_EMAILS` | 管理者メールアドレス（カンマ区切り） | `mochizuki@5dmgmt.com` | `admin@example.com,manager@example.com` | Phase 7 |
+| `ADMIN_EMAILS` | 管理者メールアドレス（カンマ区切り） | `admin@example.com` | `admin@example.com,manager@example.com` | Phase 7 |
 | `CSRF_SECRET` | CSRF トークン生成用シークレット | なし | `openssl rand -base64 32` で生成 | Phase 8 |
 | `OPENAI_API_KEY` | OpenAI API キー（AI機能用） | なし | `sk-...` | Phase 9.8-B ✅ |
 | `AI_ENABLED` | AI機能の有効化フラグ | `false` | `true`, `false` | Phase 9.8-B ✅ |
@@ -1100,7 +1100,7 @@ SAユーザーはダッシュボードでセキュリティイベントを確認
 
 ### 連絡先
 
-- **セキュリティチーム**: `security@5dmgmt.com`
+- **セキュリティチーム**: `security@example.com`
 - **緊急連絡先**: `+81-XX-XXXX-XXXX`
 
 ---

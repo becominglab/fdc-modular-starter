@@ -335,7 +335,7 @@ vercel logs --prod | grep "duration"
 **即時対応:**
 1. **封じ込め** - 該当アカウントの無効化
 2. **証拠保全** - ログの保存
-3. **報告** - security@5dmgmt.com に即時報告
+3. **報告** - security@example.com に即時報告
 
 **調査項目:**
 ```sql

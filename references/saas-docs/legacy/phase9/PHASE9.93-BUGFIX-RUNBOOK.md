@@ -234,13 +234,13 @@ npx lighthouse http://localhost:3000/dashboard --output=json --output-path=./lig
 **元のタスク**: `Sidebar` 表示ロジック修正 + Admin Seed 再実行
 
 **Phase 9.93 での対応**:
-- [ ] `mochizuki@5dmgmt.com` が `fdc_admin` (Global Role) に設定されているか確認
+- [ ] `admin@example.com` が `fdc_admin` (Global Role) に設定されているか確認
 - [ ] `Sidebar` で「設定」タブが全員に表示されるか確認
 - [ ] `Sidebar` で「管理者」「SA」タブが `fdc_admin` のみに表示されるか確認
 - [ ] 一般ユーザーでログアウトできるか確認
 
 **検証方法**:
-1. `mochizuki@5dmgmt.com` でログイン → 「設定」「管理者」「SA」タブが見えることを確認
+1. `admin@example.com` でログイン → 「設定」「管理者」「SA」タブが見えることを確認
 2. 一般ユーザーでログイン → 「設定」タブのみ見えることを確認
 
 ---

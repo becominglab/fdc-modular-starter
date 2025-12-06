@@ -155,11 +155,11 @@ GET  /api/admin/security-events/stats  # 統計情報
 
 ```typescript
 // 環境変数
-ALERT_EMAIL=mochizuki@5dmgmt.com  // プライマリ
-ALERT_EMAIL_CC=security@5dmgmt.com  // オプション
+ALERT_EMAIL=admin@example.com  // プライマリ
+ALERT_EMAIL_CC=security@example.com  // オプション
 
 // 重要度別の通知先（将来拡張）
-CRITICAL_ALERT_EMAIL=urgent@5dmgmt.com
+CRITICAL_ALERT_EMAIL=urgent@example.com
 ```
 
 ### 4.3 メールテンプレート

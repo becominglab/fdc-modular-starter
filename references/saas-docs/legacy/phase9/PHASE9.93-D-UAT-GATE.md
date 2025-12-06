@@ -66,7 +66,7 @@
 | EXEC | test-exec@example.com | *** | 全機能テスト |
 | MANAGER | test-manager@example.com | *** | 権限制限テスト |
 | MEMBER | test-member@example.com | *** | 権限制限テスト |
-| fdc_admin | mochizuki@5dmgmt.com | *** | SA機能テスト |
+| fdc_admin | admin@example.com | *** | SA機能テスト |
 ```
 
 ### 1.3 テストデータ準備

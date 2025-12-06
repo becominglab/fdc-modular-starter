@@ -50,7 +50,7 @@
 
 3. **Admin Seed 未実行**
    - `scripts/seed-admin.ts` は準備完了
-   - mochizuki@5dmgmt.com に `fdc_admin` 権限を付与する必要あり
+   - admin@example.com に `fdc_admin` 権限を付与する必要あり
    - 実行コマンド: `npx tsx scripts/seed-admin.ts`
 
 ## 次にやるべきこと（Phase 9.9-A 完了）
@@ -185,7 +185,7 @@ npx tsx scripts/seed-admin.ts
 - [ ] `/dashboard` にアクセスして Sidebar が表示される
 - [ ] 設定タブが全ユーザーに表示される
 - [ ] ログアウトボタンが動作する
-- [ ] mochizuki@5dmgmt.com に `fdc_admin` 権限が付与される
+- [ ] admin@example.com に `fdc_admin` 権限が付与される
 - [ ] 管理者・SAタブが mochizuki のみに表示される
 - [ ] `npm run type-check` が成功
 - [ ] `npm run build` が成功

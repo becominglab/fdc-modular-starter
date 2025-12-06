@@ -359,7 +359,7 @@ VALUES ('user_deletion', 'user', {user_id}, '{"reason": "user_request"}');
 |------|--------|
 | Supabase サポート | support@supabase.io |
 | Vercel サポート | support@vercel.com |
-| 社内セキュリティ | security@5dmgmt.com |
+| 社内セキュリティ | security@example.com |
 
 ### 参考ドキュメント
 

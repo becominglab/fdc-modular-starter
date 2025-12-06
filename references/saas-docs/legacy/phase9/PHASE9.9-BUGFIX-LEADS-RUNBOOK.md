@@ -56,7 +56,7 @@ Phase 10（TODO機能）開始直前ですが、**「管理者がログアウト
 
 ### 1.1 対応する課題（4つの柱）
 
-1.  **権限バグ修正 (Critical)**: `mochizuki@5dmgmt.com` および一般ユーザーのUI表示不具合を解消。
+1.  **権限バグ修正 (Critical)**: `admin@example.com` および一般ユーザーのUI表示不具合を解消。
 2.  **リード管理刷新**: 4ステータス制への移行と「失注」の分離。
 3.  **成約フロー**: リード成約 → 既存客（契約日管理）への移行プロセス確立。
 4.  **SAガバナンス**: スーパーアドミンによる全監視と、3-2-1ルールによる権限階層の強制。
@@ -85,7 +85,7 @@ Phase 10（TODO機能）開始直前ですが、**「管理者がログアウト
 **目的**: システム利用の前提となる「設定アクセス」と「ログアウト」を可能にする。
 
 **タスク**:
-1.  **Seed Fix**: `scripts/seed-admin.ts` を修正・実行し、`mochizuki@5dmgmt.com` を確実に `fdc_admin` (Global Role) に設定する。
+1.  **Seed Fix**: `scripts/seed-admin.ts` を修正・実行し、`admin@example.com` を確実に `fdc_admin` (Global Role) に設定する。
 2.  **UI Logic Fix**: `app/_components/Sidebar.tsx` (またはLayout) を修正。
     - `Settings` (設定): **Global Role / Workspace Role に関わらず全員表示**。
     - `Admin` (管理者): `global_role === 'fdc_admin'` の場合のみ表示。

@@ -67,7 +67,7 @@ GOOGLE_CLIENT_ID=xxx-xxx.apps.googleusercontent.com
 JWT_SECRET=your-super-secret-key-here-use-long-random-string
 
 # Admin Emails
-ADMIN_EMAILS=mochizuki@5dmgmt.com
+ADMIN_EMAILS=admin@example.com
 
 # Node.js Version (推奨)
 NODE_VERSION=18
@@ -368,7 +368,7 @@ psql $DATABASE_URL
 DATABASE_URL=postgresql://localhost:5432/fdc_dev
 GOOGLE_CLIENT_ID=xxx-xxx.apps.googleusercontent.com
 JWT_SECRET=dev-secret-key
-ADMIN_EMAILS=mochizuki@5dmgmt.com
+ADMIN_EMAILS=admin@example.com
 ```
 
 ---

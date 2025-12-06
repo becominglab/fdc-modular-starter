@@ -167,8 +167,8 @@ CTO / 経営層（三次対応）- 1時間以内
 
 | 役割 | 連絡先 | 対応時間 |
 |------|--------|----------|
-| セキュリティチーム | security@5dmgmt.com | 24/7 |
-| 技術サポート | support@5dmgmt.com | 平日 9:00-18:00 |
+| セキュリティチーム | security@example.com | 24/7 |
+| 技術サポート | support@example.com | 平日 9:00-18:00 |
 | 緊急連絡先 | +81-XX-XXXX-XXXX | 24/7（Critical のみ） |
 
 ---

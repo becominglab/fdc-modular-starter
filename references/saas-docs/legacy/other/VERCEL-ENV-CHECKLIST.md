@@ -28,7 +28,7 @@
 | 変数名 | 説明 | 環境 | 取得方法 |
 |--------|------|------|---------|
 | `ADMIN_EMAILS` | 管理者メールアドレス（カンマ区切り） | Production, Preview | 手動設定（例: `admin@example.com`） |
-| `ALERT_EMAIL` | アラート通知先メールアドレス | Production, Preview | 手動設定（例: `mochizuki@5dmgmt.com`） |
+| `ALERT_EMAIL` | アラート通知先メールアドレス | Production, Preview | 手動設定（例: `admin@example.com`） |
 | `RESEND_API_KEY` | Resend メール送信APIキー | Production, Preview | [Resend Dashboard](https://resend.com/api-keys) |
 | `OPENAI_API_KEY` | OpenAI API キー（AI機能用） | Production, Preview | [OpenAI Platform](https://platform.openai.com/) |
 | `AI_ENABLED` | AI機能の有効化フラグ | Production, Preview | `true` または `false`（デフォルト: `false`） |
@@ -131,7 +131,7 @@ vercel env ls
 | `GOOGLE_CLIENT_ID` | 本番用クライアントID | 本番用クライアントID | 開発用クライアントID |
 | `GOOGLE_CLIENT_SECRET` | 本番用シークレット | 本番用シークレット | 開発用シークレット |
 | `ADMIN_EMAILS` | 本番管理者 | テスト管理者 | ローカル管理者 |
-| `ALERT_EMAIL` | mochizuki@5dmgmt.com | mochizuki@5dmgmt.com | - |
+| `ALERT_EMAIL` | admin@example.com | admin@example.com | - |
 | `NODE_ENV` | `production` | `preview` | `development` |
 
 ---

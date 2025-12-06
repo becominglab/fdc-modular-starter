@@ -134,7 +134,7 @@ Phase 9.8 で実装する全タスクの一覧です。
 **実装ステップ**:
 
 1.  **Super Admin (GOV-01)**:
-    - Seed: `mochizuki@5dmgmt.com` を `global_role='fdc_admin'` に設定。
+    - Seed: `admin@example.com` を `global_role='fdc_admin'` に設定。
     - Page: `app/(app)/admin/system/page.tsx` (全WS一覧、ユーザー数表示)。
     - Middleware: `fdc_admin` 以外のアクセスを拒否。
 2.  **Role UI (GOV-02)**:
@@ -154,7 +154,7 @@ Phase 9.8 で実装する全タスクの一覧です。
 **実装状況（2025-01-24）**:
 - [x] Admin Seed スクリプト作成 (`scripts/seed-admin.ts`)
 - [⚠️] Admin権限付与は初回ログイン後に実行必要
-  - 現状: `mochizuki@5dmgmt.com` のユーザーレコード未作成
+  - 現状: `admin@example.com` のユーザーレコード未作成
   - 対応: 初回ログイン後に `npx tsx scripts/seed-admin.ts` を実行
 - [ ] Super Admin ダッシュボード UI 実装
 - [ ] Role UI 実装
@@ -285,7 +285,7 @@ DOD:
 管理機能と設定画面を実装してください。
 
 実施事項:
-1. **Super Admin**: `mochizuki@5dmgmt.com` を特権管理者化し、全体ダッシュボードを作成。
+1. **Super Admin**: `admin@example.com` を特権管理者化し、全体ダッシュボードを作成。
 2. **Role UI**: 招待時のロール選択肢（EXEC/MANAGER/MEMBER）を実装。
 3. **Governance**: セキュリティ設定画面に「AI有効化トグル」と「暗号鍵ローテーション」を実装。
 

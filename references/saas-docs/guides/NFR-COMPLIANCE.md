@@ -207,8 +207,8 @@
 
 ### 通知先
 
-- **アラート通知**: mochizuki@5dmgmt.com
-- **監査レポート**: mochizuki@5dmgmt.com
+- **アラート通知**: admin@example.com
+- **監査レポート**: admin@example.com
 
 ### 手動監査実行
 
