@@ -29,7 +29,13 @@ npm run dev
 ```
 founders-direct-modular/
 ├── app/ .................... Next.js App Router
+├── components/ ............. UIコンポーネント
+│   └── landing/ ............ ランディングページ ⭐NEW
+│       ├── default/ ........ デフォルトLP（カスタマイズベース）
+│       └── shared/ ......... 共通コンポーネント
 ├── lib/ .................... 共通ライブラリ
+├── public/ ................. 静的ファイル
+│   └── images/ ............. LP用画像
 ├── docs/ ................... ドキュメント
 │   ├── FDC-MODULAR-GUIDE.md  メインガイド
 │   ├── FDC-CORE.md ......... 開発コアガイド ⭐
@@ -84,7 +90,51 @@ founders-direct-modular/
 | 10 | Action Map（戦術層） | 📝 作成中 |
 | 11 | OKR（戦略層） | 📝 作成中 |
 
+### PART 9: PWA & Landing Page（PWA & LP）Phase 23-24
+
+| Phase | 内容 | 状態 |
+|-------|------|------|
+| 23 | PWA設定（manifest.json, Service Worker） | 📝 作成中 |
+| 24 | ランディングページ作成 | ✅ テンプレート同梱 |
+
 > 詳細は `docs/runbooks/README.md` を参照
+
+## ランディングページ（LP）
+
+このスターターには、Founders Direct Cockpitで実際に使用しているLPがテンプレートとして同梱されています。
+
+### LP構成
+
+```
+components/landing/
+├── default/                    # デフォルトLP
+│   ├── LandingPage.tsx         # メインコンポーネント
+│   ├── LandingPage.module.css  # スタイル
+│   ├── HeroSection.tsx         # ヒーローセクション
+│   ├── FeaturesSection.tsx     # 機能紹介
+│   ├── PricingSection.tsx      # 料金プラン
+│   └── FAQSection.tsx          # よくある質問
+└── shared/                     # 共通コンポーネント
+    ├── LandingHeader.tsx       # ヘッダー
+    ├── LandingFooter.tsx       # フッター
+    └── ContactForm.tsx         # お問い合わせフォーム
+```
+
+### LPのカスタマイズ
+
+```bash
+# Claude Code でカスタマイズ
+HeroSection.tsx のキャッチコピーを変更して。
+変更内容:
+- メインコピー: 「あなたのビジネスを加速する」
+- サブコピー: 「シンプルで使いやすいツール」
+```
+
+### 未ログイン時のLP表示
+
+- `/` にアクセス → LP表示
+- ログイン済み → ダッシュボードへ
+- `app/(app)/layout.tsx` で認証チェック
 
 ## Claude Code 運用
 
