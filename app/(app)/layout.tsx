@@ -11,6 +11,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { AuthProvider, type AuthUser } from '@/lib/contexts/AuthContext';
 // Phase 1 で追加: import { DataProvider } from '@/lib/contexts/DataContext';
+import LandingPage from '@/components/landing/default/LandingPage';
 import {
   LayoutDashboard,
   LogOut,
@@ -42,7 +43,8 @@ export default function AppLayout({
   const checkAuth = useCallback(() => {
     const session = localStorage.getItem('fdc_session');
     if (!session) {
-      router.push('/login');
+      // 未ログイン時はリダイレクトせず、LPを表示
+      setLoading(false);
       return;
     }
 
@@ -50,11 +52,12 @@ export default function AppLayout({
       const parsed = JSON.parse(session);
       setUser(parsed.user);
     } catch {
-      router.push('/login');
+      // セッション無効の場合もLPを表示
+      setLoading(false);
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, []);
 
   useEffect(() => {
     checkAuth();
@@ -73,8 +76,9 @@ export default function AppLayout({
     );
   }
 
+  // 未ログイン時はLPを表示
   if (!user) {
-    return null;
+    return <LandingPage />;
   }
 
   return (
