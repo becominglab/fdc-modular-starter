@@ -45,12 +45,9 @@ export function middleware(request: NextRequest) {
   }
 
   // 保護されたパス（/dashboard, /leads, /clients など）
-  if (!hasSession) {
-    // 未認証 → /login へリダイレクト
-    return NextResponse.redirect(new URL('/login', request.url));
-  }
-
-  // 認証済み → そのまま通過
+  // Note: localStorage での認証チェックは layout.tsx で行うため、
+  // middleware では Cookie がなくても通過させる（Phase 0-2 の仕様）
+  // Phase 3 以降で Supabase Auth 導入時に Cookie ベースに移行
   return NextResponse.next();
 }
 
