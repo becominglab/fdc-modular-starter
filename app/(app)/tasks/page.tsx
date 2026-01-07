@@ -1,37 +1,100 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, AlertCircle } from 'lucide-react';
+import { useAuth } from '@/lib/contexts/AuthContext';
+import { useSupabaseTasks } from '@/lib/hooks/useSupabaseTasks';
 import { useTaskReducer } from '@/lib/hooks/useTaskReducer';
 import { TaskItem } from '@/components/tasks/TaskItem';
 import { TaskFilters } from '@/components/tasks/TaskFilters';
 
 export default function TasksPage() {
-  const {
-    tasks,
-    isLoading,
-    stats,
-    filter,
-    sort,
-    sortOrder,
-    addTask,
-    updateTask,
-    deleteTask,
-    toggleTask,
-    setFilter,
-    setSort,
-  } = useTaskReducer();
+  const { user } = useAuth();
   const [newTitle, setNewTitle] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Supabase 認証ユーザーは Supabase を使用
+  // デモユーザーは localStorage を使用
+  const supabaseTasks = useSupabaseTasks();
+  const localTasks = useTaskReducer();
+
+  // 認証方式に応じてフックを選択
+  const isSupabaseUser = !!user;
+
+  // 共通プロパティを取得
+  const tasks = isSupabaseUser ? supabaseTasks.tasks : localTasks.tasks;
+  const isLoading = isSupabaseUser ? supabaseTasks.isLoading : localTasks.isLoading;
+  const stats = isSupabaseUser ? supabaseTasks.stats : localTasks.stats;
+  const filter = isSupabaseUser ? supabaseTasks.filter : localTasks.filter;
+  const sort = isSupabaseUser ? supabaseTasks.sort : localTasks.sort;
+  const sortOrder = isSupabaseUser ? supabaseTasks.sortOrder : localTasks.sortOrder;
+  const error = isSupabaseUser ? supabaseTasks.error : null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
-    addTask({ title: newTitle.trim() });
-    setNewTitle('');
+
+    try {
+      if (isSupabaseUser) {
+        await supabaseTasks.addTask(newTitle.trim());
+      } else {
+        localTasks.addTask({ title: newTitle.trim() });
+      }
+      setNewTitle('');
+    } catch {
+      // エラーはフック内で処理される
+    }
   };
 
-  const handleUpdate = (id: string, title: string) => {
-    updateTask(id, { title });
+  const handleUpdate = async (id: string, title: string) => {
+    try {
+      if (isSupabaseUser) {
+        await supabaseTasks.updateTask(id, { title });
+      } else {
+        localTasks.updateTask(id, { title });
+      }
+    } catch {
+      // エラーはフック内で処理される
+    }
+  };
+
+  const handleToggle = async (id: string) => {
+    try {
+      if (isSupabaseUser) {
+        await supabaseTasks.toggleTask(id);
+      } else {
+        localTasks.toggleTask(id);
+      }
+    } catch {
+      // エラーはフック内で処理される
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      if (isSupabaseUser) {
+        await supabaseTasks.deleteTask(id);
+      } else {
+        localTasks.deleteTask(id);
+      }
+    } catch {
+      // エラーはフック内で処理される
+    }
+  };
+
+  const handleFilterChange = (newFilter: 'all' | 'pending' | 'completed') => {
+    if (isSupabaseUser) {
+      supabaseTasks.setFilter(newFilter);
+    } else {
+      localTasks.setFilter(newFilter);
+    }
+  };
+
+  const handleSortChange = (newSort: 'createdAt' | 'updatedAt', newOrder: 'asc' | 'desc') => {
+    if (isSupabaseUser) {
+      supabaseTasks.setSort(newSort, newOrder);
+    } else {
+      localTasks.setSort(newSort, newOrder);
+    }
   };
 
   if (isLoading) {
@@ -45,6 +108,27 @@ export default function TasksPage() {
   return (
     <div className="p-6 max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">タスク管理</h1>
+
+      {/* エラー表示 */}
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700">
+          <AlertCircle size={20} />
+          <span>{error.message}</span>
+        </div>
+      )}
+
+      {/* データソース表示 */}
+      <div className="mb-4 text-sm text-gray-500">
+        {isSupabaseUser ? (
+          <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded">
+            クラウド同期
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-700 rounded">
+            ローカル保存（デモモード）
+          </span>
+        )}
+      </div>
 
       {/* 統計表示 */}
       <div className="grid grid-cols-3 gap-4 mb-6">
@@ -88,8 +172,8 @@ export default function TasksPage() {
         filter={filter}
         sort={sort}
         sortOrder={sortOrder}
-        onFilterChange={setFilter}
-        onSortChange={setSort}
+        onFilterChange={handleFilterChange}
+        onSortChange={handleSortChange}
       />
 
       {/* タスク一覧 */}
@@ -106,9 +190,21 @@ export default function TasksPage() {
           tasks.map((task) => (
             <TaskItem
               key={task.id}
-              task={task}
-              onToggle={toggleTask}
-              onDelete={deleteTask}
+              task={{
+                id: task.id,
+                title: task.title,
+                completed: task.completed,
+                createdAt:
+                  'created_at' in task
+                    ? new Date(task.created_at).getTime()
+                    : task.createdAt,
+                updatedAt:
+                  'updated_at' in task
+                    ? new Date(task.updated_at).getTime()
+                    : task.updatedAt,
+              }}
+              onToggle={handleToggle}
+              onDelete={handleDelete}
               onUpdate={handleUpdate}
             />
           ))
