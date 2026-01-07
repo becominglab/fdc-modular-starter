@@ -15,6 +15,7 @@ import {
   LogOut,
   CheckSquare,
   Users,
+  Briefcase,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -28,6 +29,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'ダッシュボード', icon: LayoutDashboard },
   { href: '/tasks', label: 'タスク', icon: CheckSquare },
   { href: '/leads', label: 'リード', icon: Users },
+  { href: '/clients', label: 'クライアント', icon: Briefcase },
 ];
 
 // デモユーザーの型

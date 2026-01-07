@@ -163,6 +163,55 @@ export interface Database {
         };
         Relationships: [];
       };
+      clients: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          company: string;
+          email: string | null;
+          phone: string | null;
+          contract_date: string;
+          notes: string | null;
+          prospect_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          company: string;
+          email?: string | null;
+          phone?: string | null;
+          contract_date?: string;
+          notes?: string | null;
+          prospect_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          company?: string;
+          email?: string | null;
+          phone?: string | null;
+          contract_date?: string;
+          notes?: string | null;
+          prospect_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'clients_prospect_id_fkey';
+            columns: ['prospect_id'];
+            referencedRelation: 'prospects';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -229,3 +278,21 @@ export interface DbProspect {
 
 export type DbProspectInsert = Omit<DbProspect, 'id' | 'created_at' | 'updated_at'>;
 export type DbProspectUpdate = Partial<Omit<DbProspect, 'id' | 'user_id' | 'created_at' | 'updated_at'>>;
+
+// Client types
+export interface DbClient {
+  id: string;
+  user_id: string;
+  name: string;
+  company: string;
+  email: string | null;
+  phone: string | null;
+  contract_date: string;
+  notes: string | null;
+  prospect_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type DbClientInsert = Omit<DbClient, 'id' | 'created_at' | 'updated_at'>;
+export type DbClientUpdate = Partial<Omit<DbClient, 'id' | 'user_id' | 'prospect_id' | 'created_at' | 'updated_at'>>;
