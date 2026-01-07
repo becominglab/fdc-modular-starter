@@ -212,6 +212,55 @@ export interface Database {
           }
         ];
       };
+      approaches: {
+        Row: {
+          id: string;
+          prospect_id: string;
+          user_id: string;
+          type: string;
+          content: string;
+          result: string | null;
+          approached_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          prospect_id: string;
+          user_id: string;
+          type: string;
+          content: string;
+          result?: string | null;
+          approached_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          prospect_id?: string;
+          user_id?: string;
+          type?: string;
+          content?: string;
+          result?: string | null;
+          approached_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'approaches_prospect_id_fkey';
+            columns: ['prospect_id'];
+            referencedRelation: 'prospects';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'approaches_user_id_fkey';
+            columns: ['user_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -296,3 +345,21 @@ export interface DbClient {
 
 export type DbClientInsert = Omit<DbClient, 'id' | 'created_at' | 'updated_at'>;
 export type DbClientUpdate = Partial<Omit<DbClient, 'id' | 'user_id' | 'prospect_id' | 'created_at' | 'updated_at'>>;
+
+// Approach types
+export type ApproachType = 'call' | 'email' | 'meeting' | 'visit' | 'other';
+
+export interface DbApproach {
+  id: string;
+  prospect_id: string;
+  user_id: string;
+  type: ApproachType;
+  content: string;
+  result: string | null;
+  approached_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type DbApproachInsert = Omit<DbApproach, 'id' | 'created_at' | 'updated_at'>;
+export type DbApproachUpdate = Partial<Omit<DbApproach, 'id' | 'prospect_id' | 'user_id' | 'created_at' | 'updated_at'>>;
