@@ -4,7 +4,7 @@ import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Building2, Mail, Phone, Plus, Calendar } from 'lucide-react';
 import { useApproaches } from '@/lib/hooks/useApproaches';
-import { ApproachTimeline, AddApproachForm, ApproachStatsCard } from '@/components/approaches';
+import { ApproachTimeline, AddApproachForm, ApproachStatsCard, PDCADashboard } from '@/components/approaches';
 import type { Prospect } from '@/lib/types/prospect';
 
 type Params = Promise<{ prospectId: string }>;
@@ -23,6 +23,7 @@ export default function ProspectDetailPage({ params }: { params: Params }) {
     isLoading: approachesLoading,
     addApproach,
     deleteApproach,
+    setGoal,
   } = useApproaches({ prospectId });
 
   // リード情報取得
@@ -127,8 +128,9 @@ export default function ProspectDetailPage({ params }: { params: Params }) {
           )}
         </div>
 
-        {/* サイドバー: 統計 */}
-        <div>
+        {/* サイドバー: 統計・PDCA */}
+        <div className="space-y-4">
+          <PDCADashboard stats={stats} onSetGoal={setGoal} />
           <ApproachStatsCard stats={stats} />
         </div>
       </div>

@@ -1,8 +1,8 @@
 'use client';
 
-import { Phone, Mail, Users, MapPin, MoreHorizontal, Trash2, Edit } from 'lucide-react';
-import type { Approach, ApproachType } from '@/lib/types/approach';
-import { APPROACH_TYPE_LABELS } from '@/lib/types/approach';
+import { Phone, Mail, Users, MapPin, MoreHorizontal, Trash2, Edit, CheckCircle, Clock, XCircle } from 'lucide-react';
+import type { Approach, ApproachType, ApproachResultStatus } from '@/lib/types/approach';
+import { APPROACH_TYPE_LABELS, RESULT_STATUS_LABELS } from '@/lib/types/approach';
 
 interface ApproachTimelineProps {
   approaches: Approach[];
@@ -24,6 +24,18 @@ const TYPE_COLORS: Record<ApproachType, string> = {
   meeting: 'bg-purple-100 text-purple-600',
   visit: 'bg-orange-100 text-orange-600',
   other: 'bg-gray-100 text-gray-600',
+};
+
+const STATUS_ICONS: Record<ApproachResultStatus, typeof CheckCircle> = {
+  success: CheckCircle,
+  pending: Clock,
+  failed: XCircle,
+};
+
+const STATUS_COLORS: Record<ApproachResultStatus, string> = {
+  success: 'text-green-600 bg-green-50',
+  pending: 'text-yellow-600 bg-yellow-50',
+  failed: 'text-red-600 bg-red-50',
 };
 
 export function ApproachTimeline({ approaches, onEdit, onDelete }: ApproachTimelineProps) {
@@ -51,6 +63,8 @@ export function ApproachTimeline({ approaches, onEdit, onDelete }: ApproachTimel
       {approaches.map((approach, index) => {
         const Icon = TYPE_ICONS[approach.type];
         const colorClass = TYPE_COLORS[approach.type];
+        const StatusIcon = approach.result_status ? STATUS_ICONS[approach.result_status] : null;
+        const statusColorClass = approach.result_status ? STATUS_COLORS[approach.result_status] : '';
 
         return (
           <div key={approach.id} className="relative pl-8">
@@ -68,10 +82,16 @@ export function ApproachTimeline({ approaches, onEdit, onDelete }: ApproachTimel
             <div className="bg-white border rounded-lg p-4">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center flex-wrap gap-2 mb-1">
                     <span className={`text-xs px-2 py-0.5 rounded-full ${colorClass}`}>
                       {APPROACH_TYPE_LABELS[approach.type]}
                     </span>
+                    {approach.result_status && StatusIcon && (
+                      <span className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 ${statusColorClass}`}>
+                        <StatusIcon size={12} />
+                        {RESULT_STATUS_LABELS[approach.result_status]}
+                      </span>
+                    )}
                     <span className="text-xs text-gray-500">
                       {formatDate(approach.approached_at)}
                     </span>

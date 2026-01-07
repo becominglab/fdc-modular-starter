@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { prospect_id, type, content, result: approachResult, approached_at } = result.data;
+    const { prospect_id, type, content, result: approachResult, result_status, approached_at } = result.data;
 
     // prospect が存在し、自分のものか確認
     const { data: prospect, error: prospectError } = await supabase
@@ -104,6 +104,7 @@ export async function POST(request: NextRequest) {
         type,
         content,
         result: approachResult,
+        result_status: result_status || null,
         approached_at: approached_at || new Date().toISOString(),
       })
       .select()

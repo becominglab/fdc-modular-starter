@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, X } from 'lucide-react';
-import type { ApproachType, CreateApproachInput } from '@/lib/types/approach';
-import { APPROACH_TYPE_LABELS } from '@/lib/types/approach';
+import { Plus, X, CheckCircle, Clock, XCircle } from 'lucide-react';
+import type { ApproachType, ApproachResultStatus, CreateApproachInput } from '@/lib/types/approach';
+import { APPROACH_TYPE_LABELS, RESULT_STATUS_LABELS } from '@/lib/types/approach';
 
 interface AddApproachFormProps {
   prospectId: string;
@@ -13,6 +13,19 @@ interface AddApproachFormProps {
 }
 
 const APPROACH_TYPES: ApproachType[] = ['call', 'email', 'meeting', 'visit', 'other'];
+const RESULT_STATUSES: ApproachResultStatus[] = ['success', 'pending', 'failed'];
+
+const STATUS_ICONS: Record<ApproachResultStatus, typeof CheckCircle> = {
+  success: CheckCircle,
+  pending: Clock,
+  failed: XCircle,
+};
+
+const STATUS_COLORS: Record<ApproachResultStatus, string> = {
+  success: 'bg-green-600 border-green-600',
+  pending: 'bg-yellow-500 border-yellow-500',
+  failed: 'bg-red-600 border-red-600',
+};
 
 export function AddApproachForm({ prospectId, isOpen, onAdd, onClose }: AddApproachFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -21,6 +34,7 @@ export function AddApproachForm({ prospectId, isOpen, onAdd, onClose }: AddAppro
     type: 'call' as ApproachType,
     content: '',
     result: '',
+    result_status: undefined as ApproachResultStatus | undefined,
     approached_at: new Date().toISOString().slice(0, 16),
   });
 
@@ -35,12 +49,14 @@ export function AddApproachForm({ prospectId, isOpen, onAdd, onClose }: AddAppro
         type: formData.type,
         content: formData.content,
         result: formData.result || undefined,
+        result_status: formData.result_status,
         approached_at: formData.approached_at,
       });
       setFormData({
         type: 'call',
         content: '',
         result: '',
+        result_status: undefined,
         approached_at: new Date().toISOString().slice(0, 16),
       });
       onClose();
@@ -55,8 +71,8 @@ export function AddApproachForm({ prospectId, isOpen, onAdd, onClose }: AddAppro
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
-        <div className="flex items-center justify-between p-4 border-b">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
           <h2 className="text-lg font-semibold text-gray-900">アプローチを記録</h2>
           <button
             onClick={onClose}
@@ -124,7 +140,37 @@ export function AddApproachForm({ prospectId, isOpen, onAdd, onClose }: AddAppro
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              結果（任意）
+              結果ステータス（任意）
+            </label>
+            <div className="flex gap-2">
+              {RESULT_STATUSES.map((status) => {
+                const Icon = STATUS_ICONS[status];
+                const isSelected = formData.result_status === status;
+                return (
+                  <button
+                    key={status}
+                    type="button"
+                    onClick={() => setFormData({
+                      ...formData,
+                      result_status: isSelected ? undefined : status,
+                    })}
+                    className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm rounded-md border transition-colors ${
+                      isSelected
+                        ? `${STATUS_COLORS[status]} text-white`
+                        : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                    }`}
+                  >
+                    <Icon size={16} />
+                    {RESULT_STATUS_LABELS[status]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              結果メモ（任意）
             </label>
             <textarea
               value={formData.result}

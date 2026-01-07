@@ -220,6 +220,7 @@ export interface Database {
           type: string;
           content: string;
           result: string | null;
+          result_status: string | null;
           approached_at: string;
           created_at: string;
           updated_at: string;
@@ -231,6 +232,7 @@ export interface Database {
           type: string;
           content: string;
           result?: string | null;
+          result_status?: string | null;
           approached_at?: string;
           created_at?: string;
           updated_at?: string;
@@ -242,6 +244,7 @@ export interface Database {
           type?: string;
           content?: string;
           result?: string | null;
+          result_status?: string | null;
           approached_at?: string;
           created_at?: string;
           updated_at?: string;
@@ -255,6 +258,46 @@ export interface Database {
           },
           {
             foreignKeyName: 'approaches_user_id_fkey';
+            columns: ['user_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      approach_goals: {
+        Row: {
+          id: string;
+          user_id: string;
+          period: string;
+          target_count: number;
+          year: number;
+          week_or_month: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          period: string;
+          target_count: number;
+          year: number;
+          week_or_month: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          period?: string;
+          target_count?: number;
+          year?: number;
+          week_or_month?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'approach_goals_user_id_fkey';
             columns: ['user_id'];
             referencedRelation: 'users';
             referencedColumns: ['id'];
@@ -348,6 +391,8 @@ export type DbClientUpdate = Partial<Omit<DbClient, 'id' | 'user_id' | 'prospect
 
 // Approach types
 export type ApproachType = 'call' | 'email' | 'meeting' | 'visit' | 'other';
+export type ApproachResultStatus = 'success' | 'pending' | 'failed';
+export type GoalPeriod = 'weekly' | 'monthly';
 
 export interface DbApproach {
   id: string;
@@ -356,6 +401,7 @@ export interface DbApproach {
   type: ApproachType;
   content: string;
   result: string | null;
+  result_status: ApproachResultStatus | null;
   approached_at: string;
   created_at: string;
   updated_at: string;
@@ -363,3 +409,18 @@ export interface DbApproach {
 
 export type DbApproachInsert = Omit<DbApproach, 'id' | 'created_at' | 'updated_at'>;
 export type DbApproachUpdate = Partial<Omit<DbApproach, 'id' | 'prospect_id' | 'user_id' | 'created_at' | 'updated_at'>>;
+
+// Approach Goal types
+export interface DbApproachGoal {
+  id: string;
+  user_id: string;
+  period: GoalPeriod;
+  target_count: number;
+  year: number;
+  week_or_month: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export type DbApproachGoalInsert = Omit<DbApproachGoal, 'id' | 'created_at' | 'updated_at'>;
+export type DbApproachGoalUpdate = Partial<Pick<DbApproachGoal, 'target_count'>>;
