@@ -101,38 +101,36 @@ export default function ProspectDetailPage({ params }: { params: Params }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* メイン: タイムライン */}
-        <div className="lg:col-span-2">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <Calendar size={20} />
-              アプローチ履歴
-            </h2>
-            <button
-              onClick={() => setIsAddFormOpen(true)}
-              className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
-            >
-              <Plus size={16} />
-              記録する
-            </button>
-          </div>
+      {/* PDCA・統計カード（横並び） */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <PDCADashboard stats={stats} onSetGoal={setGoal} />
+        <ApproachStatsCard stats={stats} />
+      </div>
 
-          {approachesLoading ? (
-            <div className="text-center py-8 text-gray-500">読み込み中...</div>
-          ) : (
-            <ApproachTimeline
-              approaches={approaches}
-              onDelete={handleDelete}
-            />
-          )}
+      {/* アプローチ履歴 */}
+      <div className="bg-white rounded-lg border p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <Calendar size={20} />
+            アプローチ履歴
+          </h2>
+          <button
+            onClick={() => setIsAddFormOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
+          >
+            <Plus size={16} />
+            記録する
+          </button>
         </div>
 
-        {/* サイドバー: 統計・PDCA */}
-        <div className="space-y-4">
-          <PDCADashboard stats={stats} onSetGoal={setGoal} />
-          <ApproachStatsCard stats={stats} />
-        </div>
+        {approachesLoading ? (
+          <div className="text-center py-8 text-gray-500">読み込み中...</div>
+        ) : (
+          <ApproachTimeline
+            approaches={approaches}
+            onDelete={handleDelete}
+          />
+        )}
       </div>
 
       {/* アプローチ追加フォーム */}

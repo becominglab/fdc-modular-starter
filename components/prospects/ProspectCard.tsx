@@ -2,6 +2,7 @@
 
 import { Building2, Mail, Phone, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import type { Prospect } from '@/lib/types/prospect';
 import { PROSPECT_STATUS_CONFIG } from '@/lib/types/prospect';
 
@@ -18,9 +19,9 @@ export function ProspectCard({
   onDelete,
   showStatus = false,
 }: ProspectCardProps) {
+  const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -33,8 +34,17 @@ export function ProspectCard({
 
   const statusConfig = PROSPECT_STATUS_CONFIG[prospect.status];
 
+  // クリック時に詳細ページへ遷移（ドラッグ後はclickイベントが発火しない）
+  const handleClick = () => {
+    router.push(`/leads/${prospect.id}`);
+  };
+
   return (
-    <div className="bg-white border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+    <div
+      className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer"
+      style={{ border: '1px solid #e5e7eb', borderRadius: '8px' }}
+      onClick={handleClick}
+    >
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <h3 className="font-medium text-gray-900 truncate">{prospect.name}</h3>
@@ -43,37 +53,44 @@ export function ProspectCard({
             <span className="truncate">{prospect.company}</span>
           </div>
         </div>
-        <div className="relative" ref={menuRef}>
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="p-1 text-gray-400 hover:text-gray-600 rounded"
-          >
-            <MoreVertical size={16} />
-          </button>
-          {isMenuOpen && (
-            <div className="absolute right-0 mt-1 w-32 bg-white border rounded-md shadow-lg z-10">
-              <button
-                onClick={() => {
-                  onEdit(prospect);
-                  setIsMenuOpen(false);
-                }}
-                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-              >
-                <Pencil size={14} />
-                編集
-              </button>
-              <button
-                onClick={() => {
-                  onDelete(prospect.id);
-                  setIsMenuOpen(false);
-                }}
-                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50"
-              >
-                <Trash2 size={14} />
-                削除
-              </button>
-            </div>
-          )}
+        <div className="flex items-center gap-1">
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsMenuOpen(!isMenuOpen);
+              }}
+              className="p-1 text-gray-400 hover:text-gray-600 rounded"
+            >
+              <MoreVertical size={16} />
+            </button>
+            {isMenuOpen && (
+              <div className="absolute right-0 mt-1 w-32 bg-white border rounded-md shadow-lg z-10">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit(prospect);
+                    setIsMenuOpen(false);
+                  }}
+                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  <Pencil size={14} />
+                  編集
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(prospect.id);
+                    setIsMenuOpen(false);
+                  }}
+                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                >
+                  <Trash2 size={14} />
+                  削除
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

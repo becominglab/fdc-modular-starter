@@ -18,7 +18,7 @@ export function KanbanView({
   onStatusChange,
 }: KanbanViewProps) {
   return (
-    <div className="flex gap-4 overflow-x-auto pb-4">
+    <div className="flex gap-6 overflow-x-auto pb-4">
       {KANBAN_STATUSES.map((status) => (
         <KanbanColumn
           key={status}
