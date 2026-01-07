@@ -1,12 +1,26 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Trash2, CheckCircle, Circle } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useTaskReducer } from '@/lib/hooks/useTaskReducer';
+import { TaskItem } from '@/components/tasks/TaskItem';
+import { TaskFilters } from '@/components/tasks/TaskFilters';
 
 export default function TasksPage() {
-  const { tasks, isLoading, stats, addTask, deleteTask, toggleTask } =
-    useTaskReducer();
+  const {
+    tasks,
+    isLoading,
+    stats,
+    filter,
+    sort,
+    sortOrder,
+    addTask,
+    updateTask,
+    deleteTask,
+    toggleTask,
+    setFilter,
+    setSort,
+  } = useTaskReducer();
   const [newTitle, setNewTitle] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -14,6 +28,10 @@ export default function TasksPage() {
     if (!newTitle.trim()) return;
     addTask({ title: newTitle.trim() });
     setNewTitle('');
+  };
+
+  const handleUpdate = (id: string, title: string) => {
+    updateTask(id, { title });
   };
 
   if (isLoading) {
@@ -65,44 +83,34 @@ export default function TasksPage() {
         </div>
       </form>
 
+      {/* フィルター・ソート */}
+      <TaskFilters
+        filter={filter}
+        sort={sort}
+        sortOrder={sortOrder}
+        onFilterChange={setFilter}
+        onSortChange={setSort}
+      />
+
       {/* タスク一覧 */}
       <div className="space-y-2">
         {tasks.length === 0 ? (
           <p className="text-center text-gray-500 py-8">
-            タスクがありません。新しいタスクを追加してください。
+            {filter === 'all'
+              ? 'タスクがありません。新しいタスクを追加してください。'
+              : filter === 'pending'
+              ? '未完了のタスクはありません。'
+              : '完了したタスクはありません。'}
           </p>
         ) : (
           tasks.map((task) => (
-            <div
+            <TaskItem
               key={task.id}
-              className={`flex items-center gap-3 p-4 bg-white border rounded-lg ${
-                task.completed ? 'opacity-60' : ''
-              }`}
-            >
-              <button
-                onClick={() => toggleTask(task.id)}
-                className="text-gray-500 hover:text-green-600"
-              >
-                {task.completed ? (
-                  <CheckCircle size={24} className="text-green-600" />
-                ) : (
-                  <Circle size={24} />
-                )}
-              </button>
-              <span
-                className={`flex-1 ${
-                  task.completed ? 'line-through text-gray-400' : ''
-                }`}
-              >
-                {task.title}
-              </span>
-              <button
-                onClick={() => deleteTask(task.id)}
-                className="text-gray-400 hover:text-red-600"
-              >
-                <Trash2 size={20} />
-              </button>
-            </div>
+              task={task}
+              onToggle={toggleTask}
+              onDelete={deleteTask}
+              onUpdate={handleUpdate}
+            />
           ))
         )}
       </div>

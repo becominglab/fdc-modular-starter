@@ -1,7 +1,14 @@
 'use client';
 
-import { useReducer, useEffect, useCallback } from 'react';
-import type { Task, CreateTaskInput, UpdateTaskInput } from '@/lib/types/task';
+import { useReducer, useEffect, useCallback, useMemo } from 'react';
+import type {
+  Task,
+  CreateTaskInput,
+  UpdateTaskInput,
+  TaskFilter,
+  TaskSort,
+  SortOrder,
+} from '@/lib/types/task';
 
 // ローカルストレージのキー
 const STORAGE_KEY = 'fdc-tasks';
@@ -12,18 +19,26 @@ type TaskAction =
   | { type: 'ADD_TASK'; payload: Task }
   | { type: 'UPDATE_TASK'; payload: { id: string; updates: UpdateTaskInput } }
   | { type: 'DELETE_TASK'; payload: string }
-  | { type: 'TOGGLE_TASK'; payload: string };
+  | { type: 'TOGGLE_TASK'; payload: string }
+  | { type: 'SET_FILTER'; payload: TaskFilter }
+  | { type: 'SET_SORT'; payload: { sort: TaskSort; order: SortOrder } };
 
 // 状態型定義
 interface TaskState {
   tasks: Task[];
   isLoading: boolean;
+  filter: TaskFilter;
+  sort: TaskSort;
+  sortOrder: SortOrder;
 }
 
 // 初期状態
 const initialState: TaskState = {
   tasks: [],
   isLoading: true,
+  filter: 'all',
+  sort: 'createdAt',
+  sortOrder: 'desc',
 };
 
 // Reducer 関数
@@ -61,6 +76,16 @@ function taskReducer(state: TaskState, action: TaskAction): TaskState {
             ? { ...task, completed: !task.completed, updatedAt: Date.now() }
             : task
         ),
+      };
+
+    case 'SET_FILTER':
+      return { ...state, filter: action.payload };
+
+    case 'SET_SORT':
+      return {
+        ...state,
+        sort: action.payload.sort,
+        sortOrder: action.payload.order,
       };
 
     default:
@@ -142,6 +167,56 @@ export function useTaskReducer() {
     dispatch({ type: 'TOGGLE_TASK', payload: id });
   }, []);
 
+  // フィルター設定
+  const setFilter = useCallback((filter: TaskFilter) => {
+    dispatch({ type: 'SET_FILTER', payload: filter });
+  }, []);
+
+  // ソート設定
+  const setSort = useCallback((sort: TaskSort, order: SortOrder) => {
+    dispatch({ type: 'SET_SORT', payload: { sort, order } });
+  }, []);
+
+  // フィルター適用
+  const getFilteredTasks = useCallback(
+    (tasks: Task[], filter: TaskFilter): Task[] => {
+      switch (filter) {
+        case 'pending':
+          return tasks.filter((t) => !t.completed);
+        case 'completed':
+          return tasks.filter((t) => t.completed);
+        default:
+          return tasks;
+      }
+    },
+    []
+  );
+
+  // ソート適用
+  const getSortedTasks = useCallback(
+    (tasks: Task[], sort: TaskSort, order: SortOrder): Task[] => {
+      return [...tasks].sort((a, b) => {
+        const aValue = a[sort];
+        const bValue = b[sort];
+        return order === 'asc' ? aValue - bValue : bValue - aValue;
+      });
+    },
+    []
+  );
+
+  // フィルター・ソート済みタスク
+  const filteredTasks = useMemo(() => {
+    const filtered = getFilteredTasks(state.tasks, state.filter);
+    return getSortedTasks(filtered, state.sort, state.sortOrder);
+  }, [
+    state.tasks,
+    state.filter,
+    state.sort,
+    state.sortOrder,
+    getFilteredTasks,
+    getSortedTasks,
+  ]);
+
   // 統計情報
   const stats = {
     total: state.tasks.length,
@@ -150,12 +225,18 @@ export function useTaskReducer() {
   };
 
   return {
-    tasks: state.tasks,
+    tasks: filteredTasks,
+    allTasks: state.tasks,
     isLoading: state.isLoading,
+    filter: state.filter,
+    sort: state.sort,
+    sortOrder: state.sortOrder,
     stats,
     addTask,
     updateTask,
     deleteTask,
     toggleTask,
+    setFilter,
+    setSort,
   };
 }
