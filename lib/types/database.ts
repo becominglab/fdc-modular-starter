@@ -124,6 +124,45 @@ export interface Database {
         };
         Relationships: [];
       };
+      prospects: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          company: string;
+          email: string | null;
+          phone: string | null;
+          status: 'new' | 'approaching' | 'negotiating' | 'proposing' | 'won' | 'lost';
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          company: string;
+          email?: string | null;
+          phone?: string | null;
+          status?: 'new' | 'approaching' | 'negotiating' | 'proposing' | 'won' | 'lost';
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          company?: string;
+          email?: string | null;
+          phone?: string | null;
+          status?: 'new' | 'approaching' | 'negotiating' | 'proposing' | 'won' | 'lost';
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -133,6 +172,7 @@ export interface Database {
     };
     Enums: {
       workspace_role: 'owner' | 'admin' | 'member';
+      prospect_status: 'new' | 'approaching' | 'negotiating' | 'proposing' | 'won' | 'lost';
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -170,3 +210,22 @@ export type DbWorkspaceUpdate = Partial<Pick<DbWorkspace, 'name' | 'description'
 
 export type DbWorkspaceMemberInsert = Omit<DbWorkspaceMember, 'id' | 'created_at' | 'updated_at'>;
 export type DbWorkspaceMemberUpdate = Pick<DbWorkspaceMember, 'role'>;
+
+// Prospect types
+export type ProspectStatus = 'new' | 'approaching' | 'negotiating' | 'proposing' | 'won' | 'lost';
+
+export interface DbProspect {
+  id: string;
+  user_id: string;
+  name: string;
+  company: string;
+  email: string | null;
+  phone: string | null;
+  status: ProspectStatus;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type DbProspectInsert = Omit<DbProspect, 'id' | 'created_at' | 'updated_at'>;
+export type DbProspectUpdate = Partial<Omit<DbProspect, 'id' | 'user_id' | 'created_at' | 'updated_at'>>;
