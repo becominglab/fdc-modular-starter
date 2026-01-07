@@ -3,31 +3,32 @@
 import { useState } from 'react';
 import { Plus, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/lib/contexts/AuthContext';
-import { useSupabaseTasks } from '@/lib/hooks/useSupabaseTasks';
+import { useRealtimeTasks } from '@/lib/hooks/useRealtimeTasks';
 import { useTaskReducer } from '@/lib/hooks/useTaskReducer';
 import { TaskItem } from '@/components/tasks/TaskItem';
 import { TaskFilters } from '@/components/tasks/TaskFilters';
+import { ConnectionStatus } from '@/components/tasks/ConnectionStatus';
 
 export default function TasksPage() {
   const { user } = useAuth();
   const [newTitle, setNewTitle] = useState('');
 
-  // Supabase 認証ユーザーは Supabase を使用
+  // Supabase 認証ユーザーは Realtime を使用
   // デモユーザーは localStorage を使用
-  const supabaseTasks = useSupabaseTasks();
+  const realtimeTasks = useRealtimeTasks();
   const localTasks = useTaskReducer();
 
   // 認証方式に応じてフックを選択
   const isSupabaseUser = !!user;
 
   // 共通プロパティを取得
-  const tasks = isSupabaseUser ? supabaseTasks.tasks : localTasks.tasks;
-  const isLoading = isSupabaseUser ? supabaseTasks.isLoading : localTasks.isLoading;
-  const stats = isSupabaseUser ? supabaseTasks.stats : localTasks.stats;
-  const filter = isSupabaseUser ? supabaseTasks.filter : localTasks.filter;
-  const sort = isSupabaseUser ? supabaseTasks.sort : localTasks.sort;
-  const sortOrder = isSupabaseUser ? supabaseTasks.sortOrder : localTasks.sortOrder;
-  const error = isSupabaseUser ? supabaseTasks.error : null;
+  const tasks = isSupabaseUser ? realtimeTasks.tasks : localTasks.tasks;
+  const isLoading = isSupabaseUser ? realtimeTasks.isLoading : localTasks.isLoading;
+  const stats = isSupabaseUser ? realtimeTasks.stats : localTasks.stats;
+  const filter = isSupabaseUser ? realtimeTasks.filter : localTasks.filter;
+  const sort = isSupabaseUser ? realtimeTasks.sort : localTasks.sort;
+  const sortOrder = isSupabaseUser ? realtimeTasks.sortOrder : localTasks.sortOrder;
+  const error = isSupabaseUser ? realtimeTasks.error : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,7 +36,7 @@ export default function TasksPage() {
 
     try {
       if (isSupabaseUser) {
-        await supabaseTasks.addTask(newTitle.trim());
+        await realtimeTasks.addTask(newTitle.trim());
       } else {
         localTasks.addTask({ title: newTitle.trim() });
       }
@@ -48,7 +49,7 @@ export default function TasksPage() {
   const handleUpdate = async (id: string, title: string) => {
     try {
       if (isSupabaseUser) {
-        await supabaseTasks.updateTask(id, { title });
+        await realtimeTasks.updateTask(id, { title });
       } else {
         localTasks.updateTask(id, { title });
       }
@@ -60,7 +61,7 @@ export default function TasksPage() {
   const handleToggle = async (id: string) => {
     try {
       if (isSupabaseUser) {
-        await supabaseTasks.toggleTask(id);
+        await realtimeTasks.toggleTask(id);
       } else {
         localTasks.toggleTask(id);
       }
@@ -72,7 +73,7 @@ export default function TasksPage() {
   const handleDelete = async (id: string) => {
     try {
       if (isSupabaseUser) {
-        await supabaseTasks.deleteTask(id);
+        await realtimeTasks.deleteTask(id);
       } else {
         localTasks.deleteTask(id);
       }
@@ -83,7 +84,7 @@ export default function TasksPage() {
 
   const handleFilterChange = (newFilter: 'all' | 'pending' | 'completed') => {
     if (isSupabaseUser) {
-      supabaseTasks.setFilter(newFilter);
+      realtimeTasks.setFilter(newFilter);
     } else {
       localTasks.setFilter(newFilter);
     }
@@ -91,7 +92,7 @@ export default function TasksPage() {
 
   const handleSortChange = (newSort: 'createdAt' | 'updatedAt', newOrder: 'asc' | 'desc') => {
     if (isSupabaseUser) {
-      supabaseTasks.setSort(newSort, newOrder);
+      realtimeTasks.setSort(newSort, newOrder);
     } else {
       localTasks.setSort(newSort, newOrder);
     }
@@ -117,14 +118,15 @@ export default function TasksPage() {
         </div>
       )}
 
-      {/* データソース表示 */}
-      <div className="mb-4 text-sm text-gray-500">
+      {/* 接続状態表示 */}
+      <div className="mb-4">
         {isSupabaseUser ? (
-          <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded">
-            クラウド同期
-          </span>
+          <ConnectionStatus
+            status={realtimeTasks.connectionStatus}
+            lastSyncedAt={realtimeTasks.lastSyncedAt}
+          />
         ) : (
-          <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-700 rounded">
+          <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-sm">
             ローカル保存（デモモード）
           </span>
         )}
