@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import type { CreateTaskInput, Suit } from '@/lib/types/task';
 import { SUIT_CONFIG, SUITS } from '@/lib/types/task';
+import type { ActionMap, ActionItem } from '@/lib/types/action-map';
 
 interface AddTaskFormProps {
   isOpen: boolean;
@@ -16,7 +17,37 @@ export function AddTaskForm({ isOpen, onAdd, onClose, defaultSuit }: AddTaskForm
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [suit, setSuit] = useState<Suit | ''>(defaultSuit || '');
+  const [actionItemId, setActionItemId] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // ActionMaps と ActionItems
+  const [actionMaps, setActionMaps] = useState<ActionMap[]>([]);
+  const [actionItems, setActionItems] = useState<ActionItem[]>([]);
+  const [selectedMapId, setSelectedMapId] = useState<string>('');
+
+  // ActionMaps を取得
+  useEffect(() => {
+    if (!isOpen) return;
+
+    fetch('/api/action-maps', { credentials: 'include' })
+      .then(res => res.json())
+      .then(data => setActionMaps(data || []))
+      .catch(err => console.error('Failed to fetch action maps:', err));
+  }, [isOpen]);
+
+  // 選択されたMapのActionItemsを取得
+  useEffect(() => {
+    if (!selectedMapId) {
+      setActionItems([]);
+      setActionItemId('');
+      return;
+    }
+
+    fetch(`/api/action-maps/${selectedMapId}/items`, { credentials: 'include' })
+      .then(res => res.json())
+      .then(data => setActionItems(data || []))
+      .catch(err => console.error('Failed to fetch action items:', err));
+  }, [selectedMapId]);
 
   if (!isOpen) return null;
 
@@ -30,10 +61,13 @@ export function AddTaskForm({ isOpen, onAdd, onClose, defaultSuit }: AddTaskForm
         title: title.trim(),
         description: description.trim() || undefined,
         suit: suit || undefined,
+        action_item_id: actionItemId || undefined,
       });
       setTitle('');
       setDescription('');
       setSuit(defaultSuit || '');
+      setSelectedMapId('');
+      setActionItemId('');
       onClose();
     } catch (error) {
       console.error('Add task error:', error);
@@ -44,7 +78,7 @@ export function AddTaskForm({ isOpen, onAdd, onClose, defaultSuit }: AddTaskForm
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg w-full max-w-md">
+      <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="text-lg font-semibold text-gray-900">タスクを追加</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
@@ -112,6 +146,47 @@ export function AddTaskForm({ isOpen, onAdd, onClose, defaultSuit }: AddTaskForm
                 未選択の場合はJoker（未分類）として追加されます
               </p>
             )}
+          </div>
+
+          {/* ActionItem 紐付け */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              ActionItem に紐付け（任意）
+            </label>
+            <div className="space-y-2">
+              {/* ActionMap 選択 */}
+              <select
+                value={selectedMapId}
+                onChange={e => setSelectedMapId(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              >
+                <option value="">-- ActionMap を選択 --</option>
+                {actionMaps.map(map => (
+                  <option key={map.id} value={map.id}>
+                    {map.title}
+                  </option>
+                ))}
+              </select>
+
+              {/* ActionItem 選択 */}
+              {selectedMapId && (
+                <select
+                  value={actionItemId}
+                  onChange={e => setActionItemId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                >
+                  <option value="">-- ActionItem を選択 --</option>
+                  {actionItems.map(item => (
+                    <option key={item.id} value={item.id}>
+                      {item.title}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              紐付けると進捗計算に反映されます
+            </p>
           </div>
 
           {/* ボタン */}

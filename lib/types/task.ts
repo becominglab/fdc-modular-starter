@@ -18,8 +18,8 @@ export interface Task {
   suit?: Suit;              // undefined = joker/未分類
   scheduled_date?: string;  // YYYY-MM-DD形式
   user_id: string;
-  workspace_id: string;
-  linked_action_item_ids?: string[];  // Phase 10で使用
+  workspace_id?: string;
+  action_item_id?: string;  // Phase 10: ActionItem との紐付け
   created_at: string;
   updated_at: string;
 }
@@ -31,6 +31,7 @@ export interface CreateTaskInput {
   status?: TaskStatus;
   suit?: Suit;
   scheduled_date?: string;
+  action_item_id?: string;
 }
 
 // 更新用入力型
@@ -40,6 +41,7 @@ export interface UpdateTaskInput {
   status?: TaskStatus;
   suit?: Suit | null;
   scheduled_date?: string | null;
+  action_item_id?: string | null;
 }
 
 // Suit設定

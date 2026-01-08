@@ -116,7 +116,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // メールアドレスからユーザーを検索
     // Note: この実装ではauth.usersテーブルへの直接アクセスが必要
     // 実際の実装では招待メール機能などを使用することが多い
-    const { data: invitedUser } = await supabase
+    // profiles テーブルは別途作成が必要
+    const { data: invitedUser } = await (supabase as any)
       .from('profiles')
       .select('id')
       .eq('email', email)

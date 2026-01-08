@@ -9,6 +9,7 @@ const createTaskSchema = z.object({
   status: z.enum(['not_started', 'in_progress', 'done']).default('not_started'),
   suit: z.enum(['spade', 'heart', 'diamond', 'club']).optional(),
   scheduled_date: z.string().optional(),
+  action_item_id: z.string().uuid().optional(),
 });
 
 // GET: タスク一覧取得
