@@ -27,8 +27,7 @@ export async function GET(request: NextRequest) {
       .select(`
         *,
         action_items (
-          id,
-          status
+          id
         )
       `)
       .eq('user_id', user.id)
@@ -45,19 +44,48 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: '取得に失敗しました' }, { status: 500 });
     }
 
-    // 進捗率を計算
-    const mapsWithProgress = (data || []).map((map) => {
-      const items = map.action_items || [];
-      const totalItems = items.length;
-      const doneItems = items.filter((item: { status: string | null }) => item.status === 'done').length;
-      const progressRate = totalItems > 0 ? Math.round((doneItems / totalItems) * 100) : 0;
+    // 各ActionMapの進捗率を計算（子ActionItemのTask完了率の平均）
+    const mapsWithProgress = await Promise.all(
+      (data || []).map(async (map) => {
+        const items = map.action_items || [];
+        const totalItems = items.length;
 
-      return {
-        ...map,
-        progress_rate: progressRate,
-        action_items: undefined,
-      };
-    });
+        if (totalItems === 0) {
+          return {
+            ...map,
+            progress_rate: 0,
+            action_item_count: 0,
+            action_items: undefined,
+          };
+        }
+
+        // 各ActionItemの進捗率を計算
+        const itemProgressRates = await Promise.all(
+          items.map(async (item: { id: string }) => {
+            const { data: tasks } = await supabase
+              .from('tasks')
+              .select('status')
+              .eq('action_item_id', item.id);
+
+            const totalTasks = tasks?.length || 0;
+            const doneTasks = tasks?.filter((t) => t.status === 'done').length || 0;
+            return totalTasks > 0 ? (doneTasks / totalTasks) * 100 : 0;
+          })
+        );
+
+        // ActionItemの進捗率の平均
+        const avgProgress = Math.round(
+          itemProgressRates.reduce((sum, rate) => sum + rate, 0) / itemProgressRates.length
+        );
+
+        return {
+          ...map,
+          progress_rate: avgProgress,
+          action_item_count: totalItems,
+          action_items: undefined,
+        };
+      })
+    );
 
     return NextResponse.json(mapsWithProgress);
   } catch (error) {

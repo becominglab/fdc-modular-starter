@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useTasks } from '@/lib/hooks/useTasks';
-import { TaskBoard, AddTaskForm } from '@/components/tasks';
+import { TaskBoard, AddTaskForm, EditTaskForm } from '@/components/tasks';
 import type { Task, TaskStatus } from '@/lib/types/task';
 
 export default function TasksPage() {
@@ -13,6 +13,7 @@ export default function TasksPage() {
     isLoading,
     error,
     addTask,
+    updateTask,
     updateSuit,
     updateStatus,
     deleteTask,
@@ -108,6 +109,13 @@ export default function TasksPage() {
         isOpen={isAddFormOpen}
         onAdd={addTask}
         onClose={() => setIsAddFormOpen(false)}
+      />
+
+      {/* タスク編集フォーム */}
+      <EditTaskForm
+        task={editingTask}
+        onSave={updateTask}
+        onClose={() => setEditingTask(null)}
       />
     </div>
   );

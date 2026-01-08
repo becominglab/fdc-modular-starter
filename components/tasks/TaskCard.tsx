@@ -2,19 +2,20 @@
 
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { MoreVertical, Pencil, Trash2, CheckCircle } from 'lucide-react';
+import { MoreVertical, Pencil, Trash2, CheckCircle, GripVertical } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import type { Task, TaskStatus } from '@/lib/types/task';
 import { SUIT_CONFIG, STATUS_CONFIG } from '@/lib/types/task';
 
 interface TaskCardProps {
   task: Task;
+  onClick?: (task: Task) => void;
   onEdit?: (task: Task) => void;
   onDelete?: (id: string) => void;
   onStatusChange?: (id: string, status: TaskStatus) => void;
 }
 
-export function TaskCard({ task, onEdit, onDelete, onStatusChange }: TaskCardProps) {
+export function TaskCard({ task, onClick, onEdit, onDelete, onStatusChange }: TaskCardProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -60,12 +61,19 @@ export function TaskCard({ task, onEdit, onDelete, onStatusChange }: TaskCardPro
       ref={setNodeRef}
       style={style}
       {...attributes}
-      {...listeners}
-      className={`bg-white rounded-lg p-3 shadow-sm border cursor-grab active:cursor-grabbing ${
+      className={`bg-white rounded-lg p-3 shadow-sm border ${
         isDragging ? 'shadow-lg ring-2 ring-blue-400' : 'hover:shadow-md'
       }`}
     >
       <div className="flex items-start gap-2">
+        {/* ドラッグハンドル */}
+        <div
+          {...listeners}
+          className="mt-0.5 flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-400"
+        >
+          <GripVertical size={16} />
+        </div>
+
         {/* 完了チェック */}
         <button
           onClick={handleComplete}
@@ -76,9 +84,16 @@ export function TaskCard({ task, onEdit, onDelete, onStatusChange }: TaskCardPro
           <CheckCircle size={18} />
         </button>
 
-        <div className="flex-1 min-w-0">
+        <div
+          className="flex-1 min-w-0 cursor-pointer"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (onClick) onClick(task);
+            else if (onEdit) onEdit(task);
+          }}
+        >
           {/* タイトル */}
-          <p className={`text-sm font-medium ${
+          <p className={`text-sm font-medium hover:text-blue-600 ${
             task.status === 'done' ? 'text-gray-400 line-through' : 'text-gray-900'
           }`}>
             {task.title}
