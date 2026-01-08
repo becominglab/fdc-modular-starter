@@ -20,7 +20,9 @@ export function useTasks() {
 
     try {
       setIsLoading(true);
-      const response = await fetch('/api/tasks?include_joker=true');
+      const response = await fetch('/api/tasks?include_joker=true', {
+        credentials: 'include',
+      });
       if (!response.ok) {
         throw new Error('タスクの取得に失敗しました');
       }
@@ -45,9 +47,11 @@ export function useTasks() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
+        credentials: 'include',
       });
       if (!response.ok) {
-        throw new Error('タスクの作成に失敗しました');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'タスクの作成に失敗しました');
       }
       const newTask = await response.json();
       setTasks(prev => [newTask, ...prev]);
@@ -65,6 +69,7 @@ export function useTasks() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
+        credentials: 'include',
       });
       if (!response.ok) {
         throw new Error('タスクの更新に失敗しました');
@@ -91,7 +96,10 @@ export function useTasks() {
   // タスク削除
   const deleteTask = useCallback(async (id: string) => {
     try {
-      const response = await fetch(`/api/tasks/${id}`, { method: 'DELETE' });
+      const response = await fetch(`/api/tasks/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
       if (!response.ok) {
         throw new Error('タスクの削除に失敗しました');
       }

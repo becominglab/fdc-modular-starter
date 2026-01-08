@@ -990,3 +990,11 @@ html {
     scroll-behavior: auto !important;
   }
 }
+
+/*
+ * Eisenhower Matrix (4象限)
+ */
+.writing-vertical {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}

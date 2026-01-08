@@ -39,7 +39,13 @@ export function TaskCard({ task, onEdit, onDelete, onStatusChange }: TaskCardPro
   }, []);
 
   const suitConfig = task.suit ? SUIT_CONFIG[task.suit] : null;
-  const statusConfig = STATUS_CONFIG[task.status];
+
+  // デフォルト値を設定
+  const defaultStatusConfig = { label: '未設定', color: 'bg-gray-100 text-gray-500' };
+  const validStatus = task.status as keyof typeof STATUS_CONFIG;
+  const statusConfig = validStatus && STATUS_CONFIG[validStatus]
+    ? STATUS_CONFIG[validStatus]
+    : defaultStatusConfig;
 
   const handleComplete = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -85,8 +91,8 @@ export function TaskCard({ task, onEdit, onDelete, onStatusChange }: TaskCardPro
                 {suitConfig.emoji} {suitConfig.label}
               </span>
             )}
-            <span className={`text-xs px-1.5 py-0.5 rounded ${statusConfig.color}`}>
-              {statusConfig.label}
+            <span className={`text-xs px-1.5 py-0.5 rounded ${statusConfig?.color || 'bg-gray-100 text-gray-500'}`}>
+              {statusConfig?.label || '未設定'}
             </span>
           </div>
         </div>

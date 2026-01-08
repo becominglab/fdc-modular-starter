@@ -43,29 +43,33 @@ export interface UpdateTaskInput {
 }
 
 // Suit設定
-export const SUIT_CONFIG: Record<Suit, { label: string; emoji: string; color: string; description: string }> = {
+export const SUIT_CONFIG: Record<Suit, { label: string; emoji: string; color: string; bgColor: string; description: string }> = {
   spade: {
     label: 'スペード',
     emoji: '♠',
     color: 'bg-slate-100 text-slate-800 border-slate-300',
+    bgColor: 'bg-gradient-to-r from-slate-200 to-slate-100',
     description: '緊急かつ重要：今すぐやる',
   },
   heart: {
     label: 'ハート',
     emoji: '♥',
     color: 'bg-red-50 text-red-800 border-red-300',
+    bgColor: 'bg-gradient-to-r from-red-100 to-red-50',
     description: '重要だが緊急ではない：習慣化',
   },
   diamond: {
     label: 'ダイヤ',
     emoji: '♦',
     color: 'bg-blue-50 text-blue-800 border-blue-300',
+    bgColor: 'bg-gradient-to-r from-blue-100 to-blue-50',
     description: '緊急だが重要ではない：委任・効率化',
   },
   club: {
     label: 'クラブ',
     emoji: '♣',
     color: 'bg-green-50 text-green-800 border-green-300',
+    bgColor: 'bg-gradient-to-r from-green-100 to-green-50',
     description: '緊急でも重要でもない：20%タイム',
   },
 };
