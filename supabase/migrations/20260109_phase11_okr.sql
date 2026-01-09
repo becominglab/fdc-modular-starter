@@ -36,7 +36,12 @@ ADD COLUMN IF NOT EXISTS key_result_id UUID REFERENCES key_results(id) ON DELETE
 ALTER TABLE objectives ENABLE ROW LEVEL SECURITY;
 ALTER TABLE key_results ENABLE ROW LEVEL SECURITY;
 
--- objectives ポリシー
+-- objectives ポリシー（既存があれば削除）
+DROP POLICY IF EXISTS "Users can view own objectives" ON objectives;
+DROP POLICY IF EXISTS "Users can insert own objectives" ON objectives;
+DROP POLICY IF EXISTS "Users can update own objectives" ON objectives;
+DROP POLICY IF EXISTS "Users can delete own objectives" ON objectives;
+
 CREATE POLICY "Users can view own objectives" ON objectives
   FOR SELECT USING (auth.uid() = user_id);
 
@@ -49,7 +54,12 @@ CREATE POLICY "Users can update own objectives" ON objectives
 CREATE POLICY "Users can delete own objectives" ON objectives
   FOR DELETE USING (auth.uid() = user_id);
 
--- key_results ポリシー
+-- key_results ポリシー（既存があれば削除）
+DROP POLICY IF EXISTS "Users can view own key_results" ON key_results;
+DROP POLICY IF EXISTS "Users can insert own key_results" ON key_results;
+DROP POLICY IF EXISTS "Users can update own key_results" ON key_results;
+DROP POLICY IF EXISTS "Users can delete own key_results" ON key_results;
+
 CREATE POLICY "Users can view own key_results" ON key_results
   FOR SELECT USING (auth.uid() = user_id);
 
@@ -77,10 +87,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS update_objectives_updated_at ON objectives;
 CREATE TRIGGER update_objectives_updated_at
   BEFORE UPDATE ON objectives
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_key_results_updated_at ON key_results;
 CREATE TRIGGER update_key_results_updated_at
   BEFORE UPDATE ON key_results
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

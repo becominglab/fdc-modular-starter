@@ -42,7 +42,7 @@ function LoginForm() {
     }
   };
 
-  // Google 認証
+  // Google 認証（Calendar/Tasks スコープ付き）
   const handleGoogleLogin = async () => {
     setIsGoogleLoading(true);
     try {
@@ -50,6 +50,7 @@ function LoginForm() {
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
+          scopes: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/tasks',
         },
       });
       if (error) {
