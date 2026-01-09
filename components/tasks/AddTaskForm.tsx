@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, FileText, AlignLeft, Link2, FolderOpen } from 'lucide-react';
 import type { CreateTaskInput, Suit } from '@/lib/types/task';
 import { SUIT_CONFIG, SUITS } from '@/lib/types/task';
 import type { ActionMap, ActionItem } from '@/lib/types/action-map';
@@ -78,104 +78,125 @@ export function AddTaskForm({ isOpen, onAdd, onClose, defaultSuit }: AddTaskForm
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-semibold text-gray-900">タスクを追加</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+      <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
+        {/* ヘッダー */}
+        <div className="flex items-center justify-between p-5 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">タスクを追加</h2>
+            <p className="text-xs text-gray-500 mt-0.5">新しいタスクを作成します</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-colors"
+          >
             <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+        <form onSubmit={handleSubmit} className="p-5 space-y-5">
           {/* タイトル */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+              <FileText size={16} className="text-blue-500" />
               タイトル <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={title}
               onChange={e => setTitle(e.target.value)}
-              placeholder="タスクのタイトル"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="例: 企画書を作成する"
+              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 focus:bg-white transition-colors"
               required
+              autoFocus
             />
           </div>
 
           {/* 説明 */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+              <AlignLeft size={16} className="text-gray-400" />
               説明
             </label>
             <textarea
               value={description}
               onChange={e => setDescription(e.target.value)}
-              placeholder="タスクの説明（任意）"
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="タスクの詳細を入力（任意）"
+              rows={2}
+              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 focus:bg-white transition-colors resize-none"
             />
           </div>
 
           {/* Suit選択 */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              象限（後で変更可能）
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
+              象限を選択
             </label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               {SUITS.map(s => {
                 const config = SUIT_CONFIG[s];
+                const isSelected = suit === s;
                 return (
                   <button
                     key={s}
                     type="button"
                     onClick={() => setSuit(suit === s ? '' : s)}
-                    className={`p-2 rounded-md border text-left transition-all ${
-                      suit === s
-                        ? `${config.color} border-2`
-                        : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                    className={`p-4 rounded-xl border-2 text-left transition-all transform hover:scale-[1.02] ${
+                      isSelected
+                        ? `${config.color} border-current shadow-md`
+                        : 'bg-gray-50 border-gray-100 hover:border-gray-200 hover:bg-gray-100'
                     }`}
                   >
-                    <span className="text-lg">{config.emoji}</span>
-                    <span className="ml-1 text-sm">{config.label}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">{config.emoji}</span>
+                      <div>
+                        <span className={`text-sm font-medium ${isSelected ? '' : 'text-gray-700'}`}>
+                          {config.label}
+                        </span>
+                      </div>
+                    </div>
                   </button>
                 );
               })}
             </div>
             {!suit && (
-              <p className="text-xs text-gray-500 mt-1">
-                未選択の場合はJoker（未分類）として追加されます
+              <p className="text-xs text-gray-400 mt-2 text-center">
+                未選択の場合は Joker（未分類）として追加
               </p>
             )}
           </div>
 
           {/* ActionItem 紐付け */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+          <div className="bg-gray-50 rounded-xl p-4">
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
+              <Link2 size={16} className="text-indigo-500" />
               ActionItem に紐付け（任意）
             </label>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {/* ActionMap 選択 */}
-              <select
-                value={selectedMapId}
-                onChange={e => setSelectedMapId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              >
-                <option value="">-- ActionMap を選択 --</option>
-                {actionMaps.map(map => (
-                  <option key={map.id} value={map.id}>
-                    {map.title}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <FolderOpen size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <select
+                  value={selectedMapId}
+                  onChange={e => setSelectedMapId(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm appearance-none cursor-pointer"
+                >
+                  <option value="">ActionMap を選択</option>
+                  {actionMaps.map(map => (
+                    <option key={map.id} value={map.id}>
+                      {map.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
               {/* ActionItem 選択 */}
               {selectedMapId && (
                 <select
                   value={actionItemId}
                   onChange={e => setActionItemId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
                 >
-                  <option value="">-- ActionItem を選択 --</option>
+                  <option value="">ActionItem を選択</option>
                   {actionItems.map(item => (
                     <option key={item.id} value={item.id}>
                       {item.title}
@@ -184,9 +205,6 @@ export function AddTaskForm({ isOpen, onAdd, onClose, defaultSuit }: AddTaskForm
                 </select>
               )}
             </div>
-            <p className="text-xs text-gray-500 mt-1">
-              紐付けると進捗計算に反映されます
-            </p>
           </div>
 
           {/* ボタン */}
@@ -194,16 +212,16 @@ export function AddTaskForm({ isOpen, onAdd, onClose, defaultSuit }: AddTaskForm
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+              className="flex-1 px-4 py-3 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 font-medium transition-colors"
             >
               キャンセル
             </button>
             <button
               type="submit"
               disabled={isSubmitting || !title.trim()}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors shadow-sm"
             >
-              {isSubmitting ? '追加中...' : '追加'}
+              {isSubmitting ? '追加中...' : 'タスクを追加'}
             </button>
           </div>
         </form>
