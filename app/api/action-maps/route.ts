@@ -7,6 +7,7 @@ const createSchema = z.object({
   description: z.string().optional(),
   target_period_start: z.string().optional(),
   target_period_end: z.string().optional(),
+  key_result_id: z.string().uuid().optional(),
 });
 
 // GET: ActionMap 一覧取得（進捗率計算付き）

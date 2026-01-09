@@ -6,19 +6,19 @@ import { useActionMaps } from '@/lib/hooks/useActionMaps';
 import { useActionItems } from '@/lib/hooks/useActionItems';
 import { ActionMapList } from '@/components/action-map/ActionMapList';
 import { ActionItemList } from '@/components/action-map/ActionItemList';
+import { AddActionMapForm } from '@/components/action-map/AddActionMapForm';
 import type { ActionMap, ActionItem } from '@/lib/types/action-map';
 
 export default function ActionMapsPage() {
   const { actionMaps, isLoading, createActionMap, updateActionMap, deleteActionMap, archiveActionMap } = useActionMaps();
   const [selectedMap, setSelectedMap] = useState<ActionMap | null>(null);
   const { actionItems, createActionItem, updateStatus } = useActionItems(selectedMap?.id || null);
+  const [isAddFormOpen, setIsAddFormOpen] = useState(false);
 
-  const handleCreateMap = async () => {
-    const title = prompt('ActionMapのタイトルを入力');
-    if (title) {
-      const newMap = await createActionMap({ title });
-      setSelectedMap(newMap);
-    }
+  const handleCreateMap = async (input: { title: string; description?: string; key_result_id?: string }) => {
+    const newMap = await createActionMap(input);
+    setSelectedMap(newMap);
+    return newMap;
   };
 
   const handleEditMap = async (map: ActionMap) => {
@@ -79,7 +79,7 @@ export default function ActionMapsPage() {
           <ActionMapList
             actionMaps={actionMaps}
             onSelect={setSelectedMap}
-            onCreate={handleCreateMap}
+            onCreate={() => setIsAddFormOpen(true)}
             onEdit={handleEditMap}
             onArchive={archiveActionMap}
             onDelete={deleteActionMap}
@@ -161,6 +161,13 @@ export default function ActionMapsPage() {
           )}
         </div>
       </div>
+
+      {/* 追加フォーム */}
+      <AddActionMapForm
+        isOpen={isAddFormOpen}
+        onAdd={handleCreateMap}
+        onClose={() => setIsAddFormOpen(false)}
+      />
     </div>
   );
 }
