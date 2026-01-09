@@ -6,12 +6,14 @@
  * 未分類イベント一覧（タスク化待ち）
  */
 
-import { HelpCircle, Calendar, Clock, ArrowRight } from 'lucide-react';
+import { useState } from 'react';
+import { HelpCircle, Calendar, Clock, ArrowRight, Loader2 } from 'lucide-react';
 import { useGoogleCalendar } from '@/lib/hooks/useGoogleCalendar';
-import { EVENT_CATEGORY_INFO, type EventCategory, type FDCEvent } from '@/lib/types/google-calendar';
+import { EVENT_CATEGORY_INFO, type EventCategory, type EventSuit, type FDCEvent } from '@/lib/types/google-calendar';
 
 interface UnclassifiedEventsProps {
   onCategorize?: (event: FDCEvent, category: EventCategory) => void;
+  onTaskCreated?: (taskId: string) => void;
 }
 
 function formatEventTime(event: FDCEvent): string {
@@ -53,14 +55,58 @@ function formatEventDate(event: FDCEvent): string {
   });
 }
 
-export function UnclassifiedEvents({ onCategorize }: UnclassifiedEventsProps) {
+export function UnclassifiedEvents({ onCategorize, onTaskCreated }: UnclassifiedEventsProps) {
   const { unclassifiedEvents, isLoading, error, isConnected, updateEventCategory } = useGoogleCalendar({
     range: 'week',
   });
+  const [processingEventId, setProcessingEventId] = useState<string | null>(null);
 
-  const handleCategorize = (event: FDCEvent, category: EventCategory) => {
-    updateEventCategory(event.id, category);
-    onCategorize?.(event, category);
+  const handleCategorize = async (event: FDCEvent, category: EventCategory) => {
+    // joker と unclassified はタスク化しない
+    if (category === 'joker' || category === 'unclassified') {
+      updateEventCategory(event.id, category);
+      onCategorize?.(event, category);
+      return;
+    }
+
+    setProcessingEventId(event.id);
+
+    try {
+      // API でタスク作成
+      const response = await fetch('/api/tasks/from-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          eventId: event.id,
+          eventSummary: event.summary || '(タイトルなし)',
+          eventDescription: event.description,
+          eventStart: event.start.dateTime || event.start.date,
+          suit: category as EventSuit,
+        }),
+      });
+
+      if (response.ok) {
+        const task = await response.json();
+        // 成功したらローカルステートも更新
+        updateEventCategory(event.id, category);
+        onCategorize?.(event, category);
+        onTaskCreated?.(task.id);
+      } else {
+        const data = await response.json();
+        if (data.error === 'Task already exists for this event') {
+          // 既にタスク化済み - それでもUIは更新
+          updateEventCategory(event.id, category);
+          onCategorize?.(event, category);
+        } else {
+          console.error('Failed to create task:', data.error);
+        }
+      }
+    } catch (err) {
+      console.error('Create task error:', err);
+    } finally {
+      setProcessingEventId(null);
+    }
   };
 
   const cardStyle: React.CSSProperties = {
@@ -185,32 +231,39 @@ export function UnclassifiedEvents({ onCategorize }: UnclassifiedEventsProps) {
 
             {/* 分類ボタン */}
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-              {categoryButtons.map(category => {
-                const info = EVENT_CATEGORY_INFO[category];
-                return (
-                  <button
-                    key={category}
-                    onClick={() => handleCategorize(event, category)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      padding: '6px 10px',
-                      fontSize: '12px',
-                      fontWeight: 500,
-                      border: 'none',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      background: info.bgColor,
-                      color: info.color,
-                      transition: 'all 0.2s',
-                    }}
-                  >
-                    {info.symbol}
-                    <ArrowRight size={12} />
-                  </button>
-                );
-              })}
+              {processingEventId === event.id ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)', fontSize: '12px' }}>
+                  <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                  タスク作成中...
+                </div>
+              ) : (
+                categoryButtons.map(category => {
+                  const info = EVENT_CATEGORY_INFO[category];
+                  return (
+                    <button
+                      key={category}
+                      onClick={() => handleCategorize(event, category)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '6px 10px',
+                        fontSize: '12px',
+                        fontWeight: 500,
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        background: info.bgColor,
+                        color: info.color,
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      {info.symbol}
+                      <ArrowRight size={12} />
+                    </button>
+                  );
+                })
+              )}
             </div>
           </div>
         ))}

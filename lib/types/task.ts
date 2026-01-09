@@ -20,6 +20,7 @@ export interface Task {
   user_id: string;
   workspace_id?: string;
   action_item_id?: string;  // Phase 10: ActionItem との紐付け
+  google_event_id?: string; // Phase 14: Google Calendar イベントID
   created_at: string;
   updated_at: string;
 }
@@ -32,6 +33,7 @@ export interface CreateTaskInput {
   suit?: Suit;
   scheduled_date?: string;
   action_item_id?: string;
+  google_event_id?: string; // Phase 14: Google Calendar イベントID
 }
 
 // 更新用入力型

@@ -18,6 +18,7 @@ import {
   Briefcase,
   Map,
   Target,
+  Grid2X2,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -29,6 +30,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'ダッシュボード', icon: LayoutDashboard },
+  { href: '/matrix', label: 'マトリクス', icon: Grid2X2 },
   { href: '/okr', label: 'OKR', icon: Target },
   { href: '/action-maps', label: 'Action Map', icon: Map },
   { href: '/tasks', label: 'タスク', icon: CheckSquare },
