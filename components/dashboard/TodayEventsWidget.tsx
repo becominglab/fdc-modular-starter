@@ -47,17 +47,41 @@ export function TodayEventsWidget() {
     range: 'today',
   });
 
+  const cardStyle: React.CSSProperties = {
+    background: 'var(--glass)',
+    backdropFilter: 'blur(10px)',
+    border: '1px solid var(--border-light)',
+    borderRadius: '12px',
+    padding: '20px',
+  };
+
+  const headerStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: '16px',
+  };
+
+  const titleStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    fontSize: '16px',
+    fontWeight: 600,
+    color: 'var(--text-dark)',
+  };
+
   if (isLoading) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <Calendar size={20} className="text-blue-500" />
-          <h3 className="font-bold text-gray-900">今日の予定</h3>
+      <div style={cardStyle}>
+        <div style={headerStyle}>
+          <div style={titleStyle}>
+            <Calendar size={20} color="var(--primary)" />
+            <span>今日の予定</span>
+          </div>
         </div>
-        <div className="animate-pulse space-y-3">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="h-16 bg-gray-100 rounded-lg" />
-          ))}
+        <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
+          読み込み中...
         </div>
       </div>
     );
@@ -65,15 +89,17 @@ export function TodayEventsWidget() {
 
   if (!isConnected) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <Calendar size={20} className="text-blue-500" />
-          <h3 className="font-bold text-gray-900">今日の予定</h3>
+      <div style={cardStyle}>
+        <div style={headerStyle}>
+          <div style={titleStyle}>
+            <Calendar size={20} color="var(--primary)" />
+            <span>今日の予定</span>
+          </div>
         </div>
-        <div className="text-center py-8 text-gray-500">
-          <Calendar size={40} className="mx-auto mb-3 opacity-50" />
-          <p className="text-sm">Google カレンダーが連携されていません</p>
-          <p className="text-xs mt-1">再ログインして連携を許可してください</p>
+        <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
+          <Calendar size={40} style={{ opacity: 0.5, marginBottom: '12px' }} />
+          <p style={{ fontSize: '14px' }}>Google カレンダーが連携されていません</p>
+          <p style={{ fontSize: '12px', marginTop: '4px' }}>再ログインして連携を許可してください</p>
         </div>
       </div>
     );
@@ -81,65 +107,83 @@ export function TodayEventsWidget() {
 
   if (error) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <Calendar size={20} className="text-blue-500" />
-          <h3 className="font-bold text-gray-900">今日の予定</h3>
+      <div style={cardStyle}>
+        <div style={headerStyle}>
+          <div style={titleStyle}>
+            <Calendar size={20} color="var(--primary)" />
+            <span>今日の予定</span>
+          </div>
         </div>
-        <div className="text-center py-8 text-red-500">
-          <p className="text-sm">読み込みエラー</p>
+        <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--error)' }}>
+          <p style={{ fontSize: '14px' }}>読み込みエラー</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Calendar size={20} className="text-blue-500" />
-          <h3 className="font-bold text-gray-900">今日の予定</h3>
+    <div style={cardStyle}>
+      <div style={headerStyle}>
+        <div style={titleStyle}>
+          <Calendar size={20} color="var(--primary)" />
+          <span>今日の予定</span>
         </div>
-        <span className="text-xs text-gray-400">
+        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
           {events.length} 件
         </span>
       </div>
 
       {events.length === 0 ? (
-        <div className="text-center py-8 text-gray-400">
-          <Calendar size={32} className="mx-auto mb-2 opacity-50" />
-          <p className="text-sm">今日の予定はありません</p>
+        <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
+          <Calendar size={32} style={{ opacity: 0.5, marginBottom: '8px' }} />
+          <p style={{ fontSize: '14px' }}>今日の予定はありません</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {events.map(event => {
             const isNow = isEventNow(event);
             return (
               <div
                 key={event.id}
-                className={`p-3 rounded-lg border transition-colors ${
-                  isNow
-                    ? 'bg-blue-50 border-blue-200'
-                    : 'bg-gray-50 border-gray-100 hover:bg-gray-100'
-                }`}
+                style={{
+                  padding: '12px',
+                  borderRadius: '8px',
+                  border: isNow ? '1px solid var(--primary)' : '1px solid var(--border-light)',
+                  background: isNow ? 'var(--primary-alpha-05)' : 'var(--bg-gray)',
+                  transition: 'all 0.2s',
+                }}
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       {isNow && (
-                        <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+                        <span style={{
+                          width: '8px',
+                          height: '8px',
+                          backgroundColor: 'var(--primary)',
+                          borderRadius: '50%',
+                          animation: 'pulse 2s infinite',
+                        }} />
                       )}
-                      <h4 className="font-medium text-gray-900 truncate">
+                      <h4 style={{
+                        fontWeight: 500,
+                        color: 'var(--text-dark)',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        fontSize: '14px',
+                        margin: 0,
+                      }}>
                         {event.summary || '(タイトルなし)'}
                       </h4>
                     </div>
-                    <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
-                      <span className="flex items-center gap-1">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <Clock size={12} />
                         {formatEventTime(event)}
                       </span>
                       {event.location && (
-                        <span className="flex items-center gap-1 truncate">
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           <MapPin size={12} />
                           {event.location}
                         </span>
@@ -151,7 +195,12 @@ export function TodayEventsWidget() {
                       href={event.htmlLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-white rounded transition-colors"
+                      style={{
+                        padding: '4px',
+                        color: 'var(--text-muted)',
+                        borderRadius: '4px',
+                        transition: 'all 0.2s',
+                      }}
                     >
                       <ExternalLink size={14} />
                     </a>

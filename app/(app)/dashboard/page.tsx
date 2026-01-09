@@ -13,50 +13,112 @@ import { GoogleTasksWidget } from '@/components/dashboard/GoogleTasksWidget';
 
 export default function DashboardPage() {
   return (
-    <div className="p-6">
+    <div>
       {/* ヘッダー */}
-      <div className="flex items-center gap-3 mb-6">
-        <LayoutDashboard size={28} className="text-blue-500" />
-        <h1 className="text-2xl font-bold text-gray-900">ダッシュボード</h1>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        marginBottom: '24px',
+      }}>
+        <LayoutDashboard size={28} color="var(--primary)" />
+        <h2 style={{
+          fontSize: '24px',
+          fontWeight: 700,
+          color: 'var(--text-dark)',
+          margin: 0,
+          border: 'none',
+          padding: 0,
+        }}>
+          ダッシュボード
+        </h2>
       </div>
 
       {/* Google ウィジェット */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+        gap: '20px',
+        marginBottom: '24px',
+      }}>
         <TodayEventsWidget />
         <GoogleTasksWidget />
       </div>
 
       {/* クイックリンク */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <h3 className="font-bold text-gray-900 mb-4">クイックアクセス</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="card">
+        <h3 style={{
+          fontSize: '16px',
+          fontWeight: 600,
+          color: 'var(--text-dark)',
+          marginBottom: '16px',
+        }}>
+          クイックアクセス
+        </h3>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+          gap: '12px',
+        }}>
           <a
             href="/tasks"
-            className="p-4 bg-gray-50 hover:bg-blue-50 rounded-lg text-center transition-colors group"
+            className="btn btn-secondary"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '16px',
+              textDecoration: 'none',
+            }}
           >
-            <span className="text-2xl mb-2 block">📋</span>
-            <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600">タスク</span>
+            <span style={{ fontSize: '24px' }}>📋</span>
+            <span style={{ fontSize: '14px', fontWeight: 500 }}>タスク</span>
           </a>
           <a
             href="/leads"
-            className="p-4 bg-gray-50 hover:bg-blue-50 rounded-lg text-center transition-colors group"
+            className="btn btn-secondary"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '16px',
+              textDecoration: 'none',
+            }}
           >
-            <span className="text-2xl mb-2 block">👥</span>
-            <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600">リード</span>
+            <span style={{ fontSize: '24px' }}>👥</span>
+            <span style={{ fontSize: '14px', fontWeight: 500 }}>リード</span>
           </a>
           <a
             href="/clients"
-            className="p-4 bg-gray-50 hover:bg-green-50 rounded-lg text-center transition-colors group"
+            className="btn btn-secondary"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '16px',
+              textDecoration: 'none',
+            }}
           >
-            <span className="text-2xl mb-2 block">🏢</span>
-            <span className="text-sm font-medium text-gray-700 group-hover:text-green-600">クライアント</span>
+            <span style={{ fontSize: '24px' }}>🏢</span>
+            <span style={{ fontSize: '14px', fontWeight: 500 }}>クライアント</span>
           </a>
           <a
             href="/action-maps"
-            className="p-4 bg-gray-50 hover:bg-purple-50 rounded-lg text-center transition-colors group"
+            className="btn btn-secondary"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '16px',
+              textDecoration: 'none',
+            }}
           >
-            <span className="text-2xl mb-2 block">🗺️</span>
-            <span className="text-sm font-medium text-gray-700 group-hover:text-purple-600">Action Map</span>
+            <span style={{ fontSize: '24px' }}>🗺️</span>
+            <span style={{ fontSize: '14px', fontWeight: 500 }}>Action Map</span>
           </a>
         </div>
       </div>
