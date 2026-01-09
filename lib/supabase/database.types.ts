@@ -426,6 +426,48 @@ export type Database = {
           },
         ]
       }
+      users: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          google_access_token: string | null
+          google_api_enabled: boolean | null
+          google_refresh_token: string | null
+          google_scopes: string[] | null
+          google_token_expires_at: string | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          google_access_token?: string | null
+          google_api_enabled?: boolean | null
+          google_refresh_token?: string | null
+          google_scopes?: string[] | null
+          google_token_expires_at?: string | null
+          id: string
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          google_access_token?: string | null
+          google_api_enabled?: boolean | null
+          google_refresh_token?: string | null
+          google_scopes?: string[] | null
+          google_token_expires_at?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       workspace_members: {
         Row: {
           created_at: string | null
