@@ -83,6 +83,7 @@ export type Database = {
           description: string | null
           id: string
           is_archived: boolean | null
+          key_result_id: string | null
           target_period_end: string | null
           target_period_start: string | null
           title: string
@@ -95,6 +96,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_archived?: boolean | null
+          key_result_id?: string | null
           target_period_end?: string | null
           target_period_start?: string | null
           title: string
@@ -107,6 +109,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_archived?: boolean | null
+          key_result_id?: string | null
           target_period_end?: string | null
           target_period_start?: string | null
           title?: string
@@ -114,7 +117,15 @@ export type Database = {
           user_id?: string
           version?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "action_maps_key_result_id_fkey"
+            columns: ["key_result_id"]
+            isOneToOne: false
+            referencedRelation: "key_results"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       approach_goals: {
         Row: {
@@ -245,6 +256,86 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      key_results: {
+        Row: {
+          created_at: string | null
+          current_value: number
+          id: string
+          objective_id: string
+          sort_order: number | null
+          target_value: number
+          title: string
+          unit: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          current_value?: number
+          id?: string
+          objective_id: string
+          sort_order?: number | null
+          target_value?: number
+          title: string
+          unit?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          current_value?: number
+          id?: string
+          objective_id?: string
+          sort_order?: number | null
+          target_value?: number
+          title?: string
+          unit?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "key_results_objective_id_fkey"
+            columns: ["objective_id"]
+            isOneToOne: false
+            referencedRelation: "objectives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      objectives: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_archived: boolean | null
+          period: string
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_archived?: boolean | null
+          period: string
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_archived?: boolean | null
+          period?: string
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       prospects: {
         Row: {
@@ -553,54 +644,7 @@ export const Constants = {
   },
 } as const
 
-// Legacy helper types for backward compatibility
-export type DbTask = Database['public']['Tables']['tasks']['Row'];
-export type DbTaskInsert = Database['public']['Tables']['tasks']['Insert'];
-export type DbTaskUpdate = Database['public']['Tables']['tasks']['Update'];
-
-// Workspace types
-export type WorkspaceRole = 'owner' | 'admin' | 'member';
-
-export type DbWorkspace = Database['public']['Tables']['workspaces']['Row'];
-export type DbWorkspaceMember = Database['public']['Tables']['workspace_members']['Row'];
-
-export type DbWorkspaceInsert = Database['public']['Tables']['workspaces']['Insert'];
-export type DbWorkspaceUpdate = Database['public']['Tables']['workspaces']['Update'];
-
-export type DbWorkspaceMemberInsert = Database['public']['Tables']['workspace_members']['Insert'];
-export type DbWorkspaceMemberUpdate = Database['public']['Tables']['workspace_members']['Update'];
-
-// Prospect types
-export type ProspectStatus = 'new' | 'approaching' | 'negotiating' | 'proposing' | 'won' | 'lost';
-export type DbProspect = Database['public']['Tables']['prospects']['Row'];
-export type DbProspectInsert = Database['public']['Tables']['prospects']['Insert'];
-export type DbProspectUpdate = Database['public']['Tables']['prospects']['Update'];
-
-// Client types
-export type DbClient = Database['public']['Tables']['clients']['Row'];
-export type DbClientInsert = Database['public']['Tables']['clients']['Insert'];
-export type DbClientUpdate = Database['public']['Tables']['clients']['Update'];
-
-// Approach types
-export type ApproachType = 'call' | 'email' | 'meeting' | 'visit' | 'other';
-export type ApproachResultStatus = 'success' | 'pending' | 'failed';
-export type GoalPeriod = 'weekly' | 'monthly';
-
-export type DbApproach = Database['public']['Tables']['approaches']['Row'];
-export type DbApproachInsert = Database['public']['Tables']['approaches']['Insert'];
-export type DbApproachUpdate = Database['public']['Tables']['approaches']['Update'];
-
-// Approach Goal types
-export type DbApproachGoal = Database['public']['Tables']['approach_goals']['Row'];
-export type DbApproachGoalInsert = Database['public']['Tables']['approach_goals']['Insert'];
-export type DbApproachGoalUpdate = Database['public']['Tables']['approach_goals']['Update'];
-
-// Action Map types
-export type DbActionMap = Database['public']['Tables']['action_maps']['Row'];
-export type DbActionMapInsert = Database['public']['Tables']['action_maps']['Insert'];
-export type DbActionMapUpdate = Database['public']['Tables']['action_maps']['Update'];
-
-// Action Item types
-export type DbActionItem = Database['public']['Tables']['action_items']['Row'];
-export type DbActionItemInsert = Database['public']['Tables']['action_items']['Insert'];
-export type DbActionItemUpdate = Database['public']['Tables']['action_items']['Update'];
+// 便利な型エイリアス
+export type DbTask = Tables<'tasks'>;
+export type DbTaskInsert = TablesInsert<'tasks'>;
+export type DbTaskUpdate = TablesUpdate<'tasks'>;

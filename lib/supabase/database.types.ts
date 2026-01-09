@@ -83,6 +83,7 @@ export type Database = {
           description: string | null
           id: string
           is_archived: boolean | null
+          key_result_id: string | null
           target_period_end: string | null
           target_period_start: string | null
           title: string
@@ -95,6 +96,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_archived?: boolean | null
+          key_result_id?: string | null
           target_period_end?: string | null
           target_period_start?: string | null
           title: string
@@ -107,6 +109,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_archived?: boolean | null
+          key_result_id?: string | null
           target_period_end?: string | null
           target_period_start?: string | null
           title?: string
@@ -114,7 +117,15 @@ export type Database = {
           user_id?: string
           version?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "action_maps_key_result_id_fkey"
+            columns: ["key_result_id"]
+            isOneToOne: false
+            referencedRelation: "key_results"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       approach_goals: {
         Row: {
@@ -245,6 +256,86 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      key_results: {
+        Row: {
+          created_at: string | null
+          current_value: number
+          id: string
+          objective_id: string
+          sort_order: number | null
+          target_value: number
+          title: string
+          unit: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          current_value?: number
+          id?: string
+          objective_id: string
+          sort_order?: number | null
+          target_value?: number
+          title: string
+          unit?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          current_value?: number
+          id?: string
+          objective_id?: string
+          sort_order?: number | null
+          target_value?: number
+          title?: string
+          unit?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "key_results_objective_id_fkey"
+            columns: ["objective_id"]
+            isOneToOne: false
+            referencedRelation: "objectives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      objectives: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_archived: boolean | null
+          period: string
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_archived?: boolean | null
+          period: string
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_archived?: boolean | null
+          period?: string
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       prospects: {
         Row: {
