@@ -1,161 +1,261 @@
-# Phase 13: Google Calendar/Tasks API 連携機能
+# Phase 13: Google Calendar API 連携 + 未分類イベント管理
 
 ## 目標
 
-Phase 12 で準備した認証基盤を使用して、Google Calendar と Google Tasks の実際のデータ取得・表示機能を実装する。
-
-## 機能概要
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  Dashboard                                                       │
-│  ┌─────────────────────────────┬─────────────────────────────┐  │
-│  │  今日の予定                  │  Google Tasks               │  │
-│  │  ─────────────────────────  │  ─────────────────────────  │  │
-│  │  09:00 チームミーティング    │  ☐ 企画書を作成             │  │
-│  │  14:00 クライアント打合せ    │  ☐ メール返信               │  │
-│  │  16:00 レビュー会            │  ☑ 資料準備                 │  │
-│  └─────────────────────────────┴─────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
-```
+Google Calendar API を使って予定を取得し、アプリに表示：
+- カレンダー一覧の取得
+- イベント（予定）の取得
+- 今日の予定をダッシュボードに表示
+- **未分類イベントの表示とタスク化**
 
 ---
 
-## Step 1: Google API 型定義作成
+## アイゼンハワーマトリクス（4象限 + 2特殊）
 
-### 1.1 型定義ファイル作成
+```
+FDC は「緊急度」×「重要度」で4象限に分類します：
 
-**ファイル:** `lib/types/google-api.ts`
+                │  緊急              │  緊急でない
+────────────────┼────────────────────┼──────────────────────
+  重要          │  ♠ spade（黒）    │  ♥ heart（赤）
+                │  すぐやる          │  予定に入れ実行
+                │  Do Now            │  Schedule
+────────────────┼────────────────────┼──────────────────────
+  重要でない    │  ♦ diamond（黄）  │  ♣ club（青）
+                │  任せる＆自動化    │  未来創造20%タイム
+                │  Delegate          │  Create Future
+────────────────┴────────────────────┴──────────────────────
+
+＋2つの特殊カテゴリ：
+  🃏 joker        → 分類待ち/特殊タスク
+  ❓ unclassified → カレンダーから取得したばかり
+
+【フロー】
+カレンダーから取得 → 「未分類」としてジョーカーゾーンに表示
+                     → ボタンクリックで象限に分類
+                     → tasks テーブルに保存（suit カラム設定）
+```
+
+**重要ポイント**:
+- カレンダーの予定 ≠ FDC のタスク
+- 「緊急度×重要度」で分類するのが FDC の核心機能
+- 分類することで時間の使い方が変わる
+
+---
+
+## 習得する新しい概念
+
+| 概念 | 説明 |
+|------|------|
+| Google Calendar API | Googleカレンダーのイベントを取得するAPI |
+| カレンダーID | 各カレンダーの識別子。メインは「primary」 |
+| タイムゾーン | 時刻の基準地域。日本は「Asia/Tokyo」 |
+| RFC3339 | 日時フォーマット「2025-12-08T10:00:00+09:00」 |
+| アイゼンハワーマトリクス | 緊急度×重要度で4象限に分類するフレームワーク |
+| Suit（4象限） | spade, heart, diamond, club |
+| EventCategory | 4象限 + joker + unclassified の6種類 |
+
+---
+
+## 前提条件
+
+- [ ] Phase 12 完了（Calendar/Tasks スコープ追加済み）
+- [ ] Google認証でカレンダー権限が取得できている
+- [ ] 開発サーバーが起動している
+
+---
+
+## Step 1: 型定義の拡張
+
+### 1.1 Google Calendar 型定義（アイゼンハワーマトリクス対応）
+
+**ファイル:** `lib/types/google-calendar.ts`
 
 ```typescript
-// Google Calendar API 型定義
+/**
+ * lib/types/google-calendar.ts
+ *
+ * Google Calendar API の型定義 + アイゼンハワーマトリクス
+ */
 
+// カレンダー一覧の各カレンダー
 export interface GoogleCalendar {
   id: string;
-  summary: string;
+  summary: string;  // カレンダー名
   description?: string;
-  timeZone?: string;
+  primary?: boolean;
   backgroundColor?: string;
   foregroundColor?: string;
-  primary?: boolean;
-  accessRole: 'freeBusyReader' | 'reader' | 'writer' | 'owner';
+  accessRole: 'owner' | 'writer' | 'reader' | 'freeBusyReader';
 }
 
-export interface GoogleCalendarEvent {
+// カレンダー一覧レスポンス
+export interface GoogleCalendarListResponse {
+  kind: string;
+  etag: string;
+  nextPageToken?: string;
+  items: GoogleCalendar[];
+}
+
+// イベントの日時
+export interface GoogleEventDateTime {
+  dateTime?: string;  // RFC3339 形式（時刻指定のイベント）
+  date?: string;      // YYYY-MM-DD 形式（終日イベント）
+  timeZone?: string;
+}
+
+// カレンダーイベント
+export interface GoogleEvent {
   id: string;
-  summary?: string;
+  status: 'confirmed' | 'tentative' | 'cancelled';
+  htmlLink: string;
+  summary?: string;  // イベント名
   description?: string;
   location?: string;
-  start: {
-    dateTime?: string;
-    date?: string;
-    timeZone?: string;
-  };
-  end: {
-    dateTime?: string;
-    date?: string;
-    timeZone?: string;
-  };
-  status: 'confirmed' | 'tentative' | 'cancelled';
-  htmlLink?: string;
-  created?: string;
-  updated?: string;
-  attendees?: Array<{
+  start: GoogleEventDateTime;
+  end: GoogleEventDateTime;
+  recurringEventId?: string;
+  creator?: {
     email: string;
     displayName?: string;
-    responseStatus?: 'needsAction' | 'declined' | 'tentative' | 'accepted';
-  }>;
+  };
   organizer?: {
     email: string;
     displayName?: string;
-    self?: boolean;
   };
+  attendees?: Array<{
+    email: string;
+    displayName?: string;
+    responseStatus: 'needsAction' | 'declined' | 'tentative' | 'accepted';
+  }>;
 }
 
-export interface GoogleCalendarListResponse {
-  kind: 'calendar#calendarList';
-  items: GoogleCalendar[];
-  nextPageToken?: string;
-}
-
-export interface GoogleCalendarEventsResponse {
-  kind: 'calendar#events';
+// イベント一覧レスポンス
+export interface GoogleEventsResponse {
+  kind: string;
+  etag: string;
   summary: string;
-  items: GoogleCalendarEvent[];
+  timeZone: string;
   nextPageToken?: string;
-  timeZone?: string;
+  items: GoogleEvent[];
 }
 
-// Google Tasks API 型定義
+// =============================================
+// アイゼンハワーマトリクス（4象限 + 2特殊）
+// =============================================
 
-export interface GoogleTaskList {
-  id: string;
-  title: string;
-  updated?: string;
-  selfLink?: string;
+// 4象限のスート
+export type EventSuit = 'spade' | 'heart' | 'diamond' | 'club';
+
+// 全カテゴリ（4象限 + joker + unclassified）
+export type EventCategory = EventSuit | 'joker' | 'unclassified';
+
+// FDC 用に拡張したイベント
+export interface FDCEvent extends GoogleEvent {
+  category: EventCategory;
+  taskId?: string;  // タスク化された場合のID
+  isAllDay: boolean;
+  startTime: Date;
+  endTime: Date;
 }
 
-export interface GoogleTask {
-  id: string;
-  title: string;
-  notes?: string;
-  status: 'needsAction' | 'completed';
-  due?: string;
-  completed?: string;
-  parent?: string;
-  position?: string;
-  selfLink?: string;
-  updated?: string;
-}
-
-export interface GoogleTaskListsResponse {
-  kind: 'tasks#taskLists';
-  items: GoogleTaskList[];
-  nextPageToken?: string;
-}
-
-export interface GoogleTasksResponse {
-  kind: 'tasks#tasks';
-  items: GoogleTask[];
-  nextPageToken?: string;
-}
+// カテゴリの表示情報
+export const EVENT_CATEGORY_INFO: Record<EventCategory, {
+  label: string;
+  symbol: string;
+  color: string;
+  bgColor: string;
+  description: string;
+}> = {
+  spade: {
+    label: 'すぐやる',
+    symbol: '♠',
+    color: '#1a1a1a',
+    bgColor: '#f0f0f0',
+    description: '緊急かつ重要 - Do Now',
+  },
+  heart: {
+    label: '予定に入れ実行',
+    symbol: '♥',
+    color: '#dc2626',
+    bgColor: '#fef2f2',
+    description: '重要だが緊急でない - Schedule',
+  },
+  diamond: {
+    label: '任せる',
+    symbol: '♦',
+    color: '#ca8a04',
+    bgColor: '#fefce8',
+    description: '緊急だが重要でない - Delegate',
+  },
+  club: {
+    label: '未来創造',
+    symbol: '♣',
+    color: '#2563eb',
+    bgColor: '#eff6ff',
+    description: '緊急でも重要でもない - Create Future',
+  },
+  joker: {
+    label: '特殊',
+    symbol: '🃏',
+    color: '#7c3aed',
+    bgColor: '#f5f3ff',
+    description: '分類待ち/特殊タスク',
+  },
+  unclassified: {
+    label: '未分類',
+    symbol: '❓',
+    color: '#6b7280',
+    bgColor: '#f9fafb',
+    description: 'カレンダーから取得したばかり',
+  },
+};
 ```
 
 ### 確認ポイント
 
-- [ ] `lib/types/google-api.ts` が作成された
+- [ ] `lib/types/google-calendar.ts` が作成された
+- [ ] EventCategory 型に6種類のカテゴリが定義されている
+- [ ] EVENT_CATEGORY_INFO に各カテゴリの表示情報がある
 
 ---
 
-## Step 2: Google Calendar API クライアント作成
+## Step 2: Google Calendar サーバーユーティリティ
 
 ### 2.1 Calendar API クライアント
 
 **ファイル:** `lib/server/google-calendar.ts`
 
 ```typescript
+/**
+ * lib/server/google-calendar.ts
+ *
+ * Google Calendar API サーバーサイドユーティリティ
+ */
+
 import { getValidGoogleToken } from './google-auth';
 import type {
   GoogleCalendar,
-  GoogleCalendarEvent,
   GoogleCalendarListResponse,
-  GoogleCalendarEventsResponse,
-} from '@/lib/types/google-api';
+  GoogleEvent,
+  GoogleEventsResponse,
+  FDCEvent,
+} from '@/lib/types/google-calendar';
 
 const CALENDAR_API_BASE = 'https://www.googleapis.com/calendar/v3';
 
 /**
- * ユーザーのカレンダー一覧を取得
+ * カレンダー一覧を取得
  */
 export async function getCalendarList(userId: string): Promise<GoogleCalendar[]> {
-  const token = await getValidGoogleToken(userId);
-  if (!token) {
-    throw new Error('Google API token not available');
+  const accessToken = await getValidGoogleToken(userId);
+  if (!accessToken) {
+    throw new Error('No valid access token');
   }
 
   const response = await fetch(`${CALENDAR_API_BASE}/users/me/calendarList`, {
     headers: {
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${accessToken}`,
     },
   });
 
@@ -170,37 +270,35 @@ export async function getCalendarList(userId: string): Promise<GoogleCalendar[]>
 }
 
 /**
- * 指定したカレンダーのイベント一覧を取得
+ * 指定カレンダーのイベントを取得
  */
 export async function getCalendarEvents(
   userId: string,
   calendarId: string = 'primary',
-  options: {
-    timeMin?: string;
-    timeMax?: string;
-    maxResults?: number;
-    singleEvents?: boolean;
-    orderBy?: 'startTime' | 'updated';
-  } = {}
-): Promise<GoogleCalendarEvent[]> {
-  const token = await getValidGoogleToken(userId);
-  if (!token) {
-    throw new Error('Google API token not available');
+  timeMin?: string,
+  timeMax?: string,
+  maxResults: number = 50
+): Promise<GoogleEvent[]> {
+  const accessToken = await getValidGoogleToken(userId);
+  if (!accessToken) {
+    throw new Error('No valid access token');
   }
 
-  const params = new URLSearchParams();
+  const params = new URLSearchParams({
+    singleEvents: 'true',
+    orderBy: 'startTime',
+    maxResults: maxResults.toString(),
+    timeZone: 'Asia/Tokyo',
+  });
 
-  if (options.timeMin) params.set('timeMin', options.timeMin);
-  if (options.timeMax) params.set('timeMax', options.timeMax);
-  if (options.maxResults) params.set('maxResults', options.maxResults.toString());
-  if (options.singleEvents !== undefined) params.set('singleEvents', options.singleEvents.toString());
-  if (options.orderBy) params.set('orderBy', options.orderBy);
+  if (timeMin) params.set('timeMin', timeMin);
+  if (timeMax) params.set('timeMax', timeMax);
 
   const url = `${CALENDAR_API_BASE}/calendars/${encodeURIComponent(calendarId)}/events?${params}`;
 
   const response = await fetch(url, {
     headers: {
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${accessToken}`,
     },
   });
 
@@ -210,206 +308,160 @@ export async function getCalendarEvents(
     throw new Error(`Failed to fetch calendar events: ${response.status}`);
   }
 
-  const data: GoogleCalendarEventsResponse = await response.json();
+  const data: GoogleEventsResponse = await response.json();
   return data.items || [];
 }
 
 /**
  * 今日のイベントを取得
  */
-export async function getTodayEvents(userId: string): Promise<GoogleCalendarEvent[]> {
+export async function getTodayEvents(userId: string, calendarId: string = 'primary'): Promise<GoogleEvent[]> {
   const now = new Date();
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
 
-  return getCalendarEvents(userId, 'primary', {
-    timeMin: startOfDay.toISOString(),
-    timeMax: endOfDay.toISOString(),
-    singleEvents: true,
-    orderBy: 'startTime',
-    maxResults: 20,
-  });
+  return getCalendarEvents(
+    userId,
+    calendarId,
+    startOfDay.toISOString(),
+    endOfDay.toISOString()
+  );
 }
 
 /**
  * 今週のイベントを取得
  */
-export async function getWeekEvents(userId: string): Promise<GoogleCalendarEvent[]> {
+export async function getWeekEvents(userId: string, calendarId: string = 'primary'): Promise<GoogleEvent[]> {
   const now = new Date();
-  const startOfWeek = new Date(now);
-  startOfWeek.setDate(now.getDate() - now.getDay()); // 日曜日
-  startOfWeek.setHours(0, 0, 0, 0);
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const endOfWeek = new Date(startOfDay);
+  endOfWeek.setDate(endOfWeek.getDate() + 7);
 
-  const endOfWeek = new Date(startOfWeek);
-  endOfWeek.setDate(startOfWeek.getDate() + 7);
+  return getCalendarEvents(
+    userId,
+    calendarId,
+    startOfDay.toISOString(),
+    endOfWeek.toISOString(),
+    100
+  );
+}
 
-  return getCalendarEvents(userId, 'primary', {
-    timeMin: startOfWeek.toISOString(),
-    timeMax: endOfWeek.toISOString(),
-    singleEvents: true,
-    orderBy: 'startTime',
-    maxResults: 50,
-  });
+/**
+ * GoogleEvent を FDCEvent に変換
+ */
+export function convertToFDCEvent(event: GoogleEvent): FDCEvent {
+  const isAllDay = !event.start.dateTime;
+
+  let startTime: Date;
+  let endTime: Date;
+
+  if (isAllDay) {
+    // 終日イベント
+    startTime = new Date(event.start.date + 'T00:00:00');
+    endTime = new Date(event.end.date + 'T00:00:00');
+  } else {
+    // 時刻指定イベント
+    startTime = new Date(event.start.dateTime!);
+    endTime = new Date(event.end.dateTime!);
+  }
+
+  return {
+    ...event,
+    category: 'unclassified',  // デフォルトは未分類
+    isAllDay,
+    startTime,
+    endTime,
+  };
+}
+
+/**
+ * イベント一覧を FDCEvent に変換
+ */
+export function convertEventsToFDC(events: GoogleEvent[]): FDCEvent[] {
+  return events
+    .filter(event => event.status !== 'cancelled')
+    .map(convertToFDCEvent)
+    .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
 }
 ```
 
 ### 確認ポイント
 
 - [ ] `lib/server/google-calendar.ts` が作成された
+- [ ] `getCalendarList`, `getCalendarEvents`, `getTodayEvents`, `getWeekEvents` がある
+- [ ] `convertToFDCEvent` で未分類カテゴリが設定される
 
 ---
 
-## Step 3: Google Tasks API クライアント作成
+## Step 3: API Routes 作成
 
-### 3.1 Tasks API クライアント
+### 3.1 カレンダー一覧 API
 
-**ファイル:** `lib/server/google-tasks.ts`
+**ファイル:** `app/api/google/calendars/route.ts`
 
 ```typescript
-import { getValidGoogleToken } from './google-auth';
-import type {
-  GoogleTaskList,
-  GoogleTask,
-  GoogleTaskListsResponse,
-  GoogleTasksResponse,
-} from '@/lib/types/google-api';
-
-const TASKS_API_BASE = 'https://www.googleapis.com/tasks/v1';
-
 /**
- * ユーザーのタスクリスト一覧を取得
+ * app/api/google/calendars/route.ts
+ *
+ * GET /api/google/calendars - カレンダー一覧取得
  */
-export async function getTaskLists(userId: string): Promise<GoogleTaskList[]> {
-  const token = await getValidGoogleToken(userId);
-  if (!token) {
-    throw new Error('Google API token not available');
+
+import { NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+import { getCalendarList } from '@/lib/server/google-calendar';
+
+export async function GET() {
+  try {
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const calendars = await getCalendarList(user.id);
+
+    return NextResponse.json(calendars);
+  } catch (error) {
+    console.error('Calendars API error:', error);
+
+    if (error instanceof Error && error.message === 'No valid access token') {
+      return NextResponse.json(
+        { error: 'Google Calendar not connected', code: 'NOT_CONNECTED' },
+        { status: 403 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: 'Failed to fetch calendars' },
+      { status: 500 }
+    );
   }
-
-  const response = await fetch(`${TASKS_API_BASE}/users/@me/lists`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    console.error('Task lists fetch error:', error);
-    throw new Error(`Failed to fetch task lists: ${response.status}`);
-  }
-
-  const data: GoogleTaskListsResponse = await response.json();
-  return data.items || [];
-}
-
-/**
- * 指定したタスクリストのタスク一覧を取得
- */
-export async function getTasks(
-  userId: string,
-  taskListId: string = '@default',
-  options: {
-    maxResults?: number;
-    showCompleted?: boolean;
-    showHidden?: boolean;
-    dueMin?: string;
-    dueMax?: string;
-  } = {}
-): Promise<GoogleTask[]> {
-  const token = await getValidGoogleToken(userId);
-  if (!token) {
-    throw new Error('Google API token not available');
-  }
-
-  const params = new URLSearchParams();
-
-  if (options.maxResults) params.set('maxResults', options.maxResults.toString());
-  if (options.showCompleted !== undefined) params.set('showCompleted', options.showCompleted.toString());
-  if (options.showHidden !== undefined) params.set('showHidden', options.showHidden.toString());
-  if (options.dueMin) params.set('dueMin', options.dueMin);
-  if (options.dueMax) params.set('dueMax', options.dueMax);
-
-  const url = `${TASKS_API_BASE}/lists/${encodeURIComponent(taskListId)}/tasks?${params}`;
-
-  const response = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    console.error('Tasks fetch error:', error);
-    throw new Error(`Failed to fetch tasks: ${response.status}`);
-  }
-
-  const data: GoogleTasksResponse = await response.json();
-  return data.items || [];
-}
-
-/**
- * 未完了のタスクを取得
- */
-export async function getPendingTasks(userId: string): Promise<GoogleTask[]> {
-  return getTasks(userId, '@default', {
-    showCompleted: false,
-    maxResults: 20,
-  });
-}
-
-/**
- * タスクのステータスを更新
- */
-export async function updateTaskStatus(
-  userId: string,
-  taskListId: string,
-  taskId: string,
-  completed: boolean
-): Promise<GoogleTask> {
-  const token = await getValidGoogleToken(userId);
-  if (!token) {
-    throw new Error('Google API token not available');
-  }
-
-  const url = `${TASKS_API_BASE}/lists/${encodeURIComponent(taskListId)}/tasks/${encodeURIComponent(taskId)}`;
-
-  const response = await fetch(url, {
-    method: 'PATCH',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      status: completed ? 'completed' : 'needsAction',
-      completed: completed ? new Date().toISOString() : null,
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    console.error('Task update error:', error);
-    throw new Error(`Failed to update task: ${response.status}`);
-  }
-
-  return response.json();
 }
 ```
 
-### 確認ポイント
+### 3.2 イベント一覧 API（FDCEvent対応）
 
-- [ ] `lib/server/google-tasks.ts` が作成された
-
----
-
-## Step 4: API エンドポイント作成
-
-### 4.1 カレンダーイベント API
-
-**ファイル:** `app/api/google/calendar/events/route.ts`
+**ファイル:** `app/api/google/calendars/events/route.ts`
 
 ```typescript
+/**
+ * app/api/google/calendars/events/route.ts
+ *
+ * GET /api/google/calendars/events - イベント一覧取得（FDCEvent形式）
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { getTodayEvents, getWeekEvents, getCalendarEvents } from '@/lib/server/google-calendar';
+import {
+  getCalendarEvents,
+  getTodayEvents,
+  getWeekEvents,
+  convertEventsToFDC,
+} from '@/lib/server/google-calendar';
 
 export async function GET(request: NextRequest) {
   try {
@@ -417,46 +469,48 @@ export async function GET(request: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const range = searchParams.get('range') || 'today';
+    const calendarId = searchParams.get('calendarId') || 'primary';
+    const range = searchParams.get('range') || 'today';  // today, week, custom
+    const timeMin = searchParams.get('timeMin');
+    const timeMax = searchParams.get('timeMax');
 
     let events;
 
     switch (range) {
       case 'today':
-        events = await getTodayEvents(user.id);
+        events = await getTodayEvents(user.id, calendarId);
         break;
       case 'week':
-        events = await getWeekEvents(user.id);
+        events = await getWeekEvents(user.id, calendarId);
         break;
       case 'custom':
-        const timeMin = searchParams.get('timeMin');
-        const timeMax = searchParams.get('timeMax');
         if (!timeMin || !timeMax) {
           return NextResponse.json(
             { error: 'timeMin and timeMax are required for custom range' },
             { status: 400 }
           );
         }
-        events = await getCalendarEvents(user.id, 'primary', {
-          timeMin,
-          timeMax,
-          singleEvents: true,
-          orderBy: 'startTime',
-        });
+        events = await getCalendarEvents(user.id, calendarId, timeMin, timeMax);
         break;
       default:
-        events = await getTodayEvents(user.id);
+        events = await getTodayEvents(user.id, calendarId);
     }
 
-    return NextResponse.json(events);
+    // FDCEvent に変換して返す（未分類カテゴリ付き）
+    const fdcEvents = convertEventsToFDC(events);
+
+    return NextResponse.json(fdcEvents);
   } catch (error) {
     console.error('Calendar events API error:', error);
 
-    if (error instanceof Error && error.message.includes('token not available')) {
+    if (error instanceof Error && error.message === 'No valid access token') {
       return NextResponse.json(
         { error: 'Google Calendar not connected', code: 'NOT_CONNECTED' },
         { status: 403 }
@@ -471,165 +525,51 @@ export async function GET(request: NextRequest) {
 }
 ```
 
-### 4.2 Google Tasks API
-
-**ファイル:** `app/api/google/tasks/route.ts`
-
-```typescript
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { getPendingTasks, getTaskLists, getTasks } from '@/lib/server/google-tasks';
-
-export async function GET(request: NextRequest) {
-  try {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const searchParams = request.nextUrl.searchParams;
-    const listId = searchParams.get('listId');
-    const showCompleted = searchParams.get('showCompleted') === 'true';
-
-    let tasks;
-
-    if (listId) {
-      tasks = await getTasks(user.id, listId, { showCompleted });
-    } else {
-      tasks = await getPendingTasks(user.id);
-    }
-
-    return NextResponse.json(tasks);
-  } catch (error) {
-    console.error('Google Tasks API error:', error);
-
-    if (error instanceof Error && error.message.includes('token not available')) {
-      return NextResponse.json(
-        { error: 'Google Tasks not connected', code: 'NOT_CONNECTED' },
-        { status: 403 }
-      );
-    }
-
-    return NextResponse.json(
-      { error: 'Failed to fetch tasks' },
-      { status: 500 }
-    );
-  }
-}
-```
-
-### 4.3 タスクリスト API
-
-**ファイル:** `app/api/google/tasks/lists/route.ts`
-
-```typescript
-import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { getTaskLists } from '@/lib/server/google-tasks';
-
-export async function GET() {
-  try {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const taskLists = await getTaskLists(user.id);
-    return NextResponse.json(taskLists);
-  } catch (error) {
-    console.error('Task lists API error:', error);
-
-    if (error instanceof Error && error.message.includes('token not available')) {
-      return NextResponse.json(
-        { error: 'Google Tasks not connected', code: 'NOT_CONNECTED' },
-        { status: 403 }
-      );
-    }
-
-    return NextResponse.json(
-      { error: 'Failed to fetch task lists' },
-      { status: 500 }
-    );
-  }
-}
-```
-
-### 4.4 カレンダー一覧 API
-
-**ファイル:** `app/api/google/calendar/list/route.ts`
-
-```typescript
-import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { getCalendarList } from '@/lib/server/google-calendar';
-
-export async function GET() {
-  try {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const calendars = await getCalendarList(user.id);
-    return NextResponse.json(calendars);
-  } catch (error) {
-    console.error('Calendar list API error:', error);
-
-    if (error instanceof Error && error.message.includes('token not available')) {
-      return NextResponse.json(
-        { error: 'Google Calendar not connected', code: 'NOT_CONNECTED' },
-        { status: 403 }
-      );
-    }
-
-    return NextResponse.json(
-      { error: 'Failed to fetch calendar list' },
-      { status: 500 }
-    );
-  }
-}
-```
-
 ### 確認ポイント
 
-- [ ] `app/api/google/calendar/events/route.ts` が作成された
-- [ ] `app/api/google/calendar/list/route.ts` が作成された
-- [ ] `app/api/google/tasks/route.ts` が作成された
-- [ ] `app/api/google/tasks/lists/route.ts` が作成された
+- [ ] `app/api/google/calendars/route.ts` が作成された
+- [ ] `app/api/google/calendars/events/route.ts` が作成された
+- [ ] range パラメータで today/week/custom が選択できる
+- [ ] FDCEvent 形式（category: 'unclassified'）で返される
 
 ---
 
-## Step 5: React Hooks 作成
+## Step 4: React Hooks 作成
 
-### 5.1 カレンダーイベント用 Hook
+### 4.1 カレンダーイベント Hook（分類機能付き）
 
-**ファイル:** `lib/hooks/useGoogleCalendar.ts`
+**ファイル:** `lib/hooks/useCalendarEvents.ts`
 
 ```typescript
 'use client';
 
+/**
+ * lib/hooks/useCalendarEvents.ts
+ *
+ * カレンダーイベント取得 Hook（分類機能付き）
+ */
+
 import { useState, useEffect, useCallback } from 'react';
-import type { GoogleCalendarEvent } from '@/lib/types/google-api';
+import type { FDCEvent, EventCategory } from '@/lib/types/google-calendar';
 
-type Range = 'today' | 'week' | 'custom';
-
-interface UseGoogleCalendarOptions {
-  range?: Range;
+interface UseCalendarEventsOptions {
+  calendarId?: string;
+  range?: 'today' | 'week' | 'custom';
   timeMin?: string;
   timeMax?: string;
   autoFetch?: boolean;
 }
 
-export function useGoogleCalendar(options: UseGoogleCalendarOptions = {}) {
-  const { range = 'today', timeMin, timeMax, autoFetch = true } = options;
+export function useCalendarEvents(options: UseCalendarEventsOptions = {}) {
+  const {
+    calendarId = 'primary',
+    range = 'today',
+    timeMin,
+    timeMax,
+    autoFetch = true,
+  } = options;
 
-  const [events, setEvents] = useState<GoogleCalendarEvent[]>([]);
+  const [events, setEvents] = useState<FDCEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(true);
@@ -639,13 +579,17 @@ export function useGoogleCalendar(options: UseGoogleCalendarOptions = {}) {
     setError(null);
 
     try {
-      const params = new URLSearchParams({ range });
+      const params = new URLSearchParams({
+        calendarId,
+        range,
+      });
+
       if (range === 'custom' && timeMin && timeMax) {
         params.set('timeMin', timeMin);
         params.set('timeMax', timeMax);
       }
 
-      const response = await fetch(`/api/google/calendar/events?${params}`, {
+      const response = await fetch(`/api/google/calendars/events?${params}`, {
         credentials: 'include',
       });
 
@@ -660,14 +604,20 @@ export function useGoogleCalendar(options: UseGoogleCalendarOptions = {}) {
       }
 
       const data = await response.json();
-      setEvents(data);
+      // startTime/endTime を Date オブジェクトに変換
+      const eventsWithDates = data.map((event: FDCEvent) => ({
+        ...event,
+        startTime: new Date(event.startTime),
+        endTime: new Date(event.endTime),
+      }));
+      setEvents(eventsWithDates);
       setIsConnected(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setIsLoading(false);
     }
-  }, [range, timeMin, timeMax]);
+  }, [calendarId, range, timeMin, timeMax]);
 
   useEffect(() => {
     if (autoFetch) {
@@ -675,50 +625,64 @@ export function useGoogleCalendar(options: UseGoogleCalendarOptions = {}) {
     }
   }, [fetchEvents, autoFetch]);
 
+  // カテゴリでフィルタリング
+  const getEventsByCategory = useCallback((category: EventCategory) => {
+    return events.filter(event => event.category === category);
+  }, [events]);
+
+  // 未分類イベントを取得
+  const unclassifiedEvents = events.filter(event => event.category === 'unclassified');
+
+  // イベントのカテゴリを更新（ローカルステート）
+  const updateEventCategory = useCallback((eventId: string, category: EventCategory) => {
+    setEvents(prev =>
+      prev.map(event =>
+        event.id === eventId ? { ...event, category } : event
+      )
+    );
+  }, []);
+
   return {
     events,
+    unclassifiedEvents,
     isLoading,
     error,
     isConnected,
     refetch: fetchEvents,
+    getEventsByCategory,
+    updateEventCategory,
   };
 }
 ```
 
-### 5.2 Google Tasks 用 Hook
+### 4.2 カレンダー一覧 Hook
 
-**ファイル:** `lib/hooks/useGoogleTasks.ts`
+**ファイル:** `lib/hooks/useCalendars.ts`
 
 ```typescript
 'use client';
 
+/**
+ * lib/hooks/useCalendars.ts
+ *
+ * カレンダー一覧取得 Hook
+ */
+
 import { useState, useEffect, useCallback } from 'react';
-import type { GoogleTask, GoogleTaskList } from '@/lib/types/google-api';
+import type { GoogleCalendar } from '@/lib/types/google-calendar';
 
-interface UseGoogleTasksOptions {
-  listId?: string;
-  showCompleted?: boolean;
-  autoFetch?: boolean;
-}
-
-export function useGoogleTasks(options: UseGoogleTasksOptions = {}) {
-  const { listId, showCompleted = false, autoFetch = true } = options;
-
-  const [tasks, setTasks] = useState<GoogleTask[]>([]);
+export function useCalendars() {
+  const [calendars, setCalendars] = useState<GoogleCalendar[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(true);
 
-  const fetchTasks = useCallback(async () => {
+  const fetchCalendars = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const params = new URLSearchParams();
-      if (listId) params.set('listId', listId);
-      if (showCompleted) params.set('showCompleted', 'true');
-
-      const response = await fetch(`/api/google/tasks?${params}`, {
+      const response = await fetch('/api/google/calendars', {
         credentials: 'include',
       });
 
@@ -726,58 +690,15 @@ export function useGoogleTasks(options: UseGoogleTasksOptions = {}) {
         const data = await response.json();
         if (data.code === 'NOT_CONNECTED') {
           setIsConnected(false);
-          setTasks([]);
+          setCalendars([]);
           return;
         }
-        throw new Error(data.error || 'Failed to fetch tasks');
+        throw new Error(data.error || 'Failed to fetch calendars');
       }
 
       const data = await response.json();
-      setTasks(data);
+      setCalendars(data);
       setIsConnected(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [listId, showCompleted]);
-
-  useEffect(() => {
-    if (autoFetch) {
-      fetchTasks();
-    }
-  }, [fetchTasks, autoFetch]);
-
-  return {
-    tasks,
-    isLoading,
-    error,
-    isConnected,
-    refetch: fetchTasks,
-  };
-}
-
-export function useGoogleTaskLists() {
-  const [taskLists, setTaskLists] = useState<GoogleTaskList[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchTaskLists = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch('/api/google/tasks/lists', {
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to fetch task lists');
-      }
-
-      const data = await response.json();
-      setTaskLists(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
@@ -786,92 +707,116 @@ export function useGoogleTaskLists() {
   }, []);
 
   useEffect(() => {
-    fetchTaskLists();
-  }, [fetchTaskLists]);
+    fetchCalendars();
+  }, [fetchCalendars]);
+
+  // プライマリカレンダーを取得
+  const primaryCalendar = calendars.find(cal => cal.primary);
 
   return {
-    taskLists,
+    calendars,
+    primaryCalendar,
     isLoading,
     error,
-    refetch: fetchTaskLists,
+    isConnected,
+    refetch: fetchCalendars,
   };
 }
 ```
 
 ### 確認ポイント
 
-- [ ] `lib/hooks/useGoogleCalendar.ts` が作成された
-- [ ] `lib/hooks/useGoogleTasks.ts` が作成された
+- [ ] `lib/hooks/useCalendarEvents.ts` が作成された
+- [ ] `lib/hooks/useCalendars.ts` が作成された
+- [ ] `unclassifiedEvents` で未分類イベントが取得できる
+- [ ] `updateEventCategory` でカテゴリ更新ができる
 
 ---
 
-## Step 6: ダッシュボードウィジェット作成
+## Step 5: UI コンポーネント作成
 
-### 6.1 今日の予定ウィジェット
+### 5.1 今日の予定コンポーネント
 
-**ファイル:** `components/dashboard/TodayEventsWidget.tsx`
+**ファイル:** `components/calendar/TodaySchedule.tsx`
 
 ```typescript
 'use client';
 
-import { Calendar, Clock, MapPin, ExternalLink } from 'lucide-react';
-import { useGoogleCalendar } from '@/lib/hooks/useGoogleCalendar';
-import type { GoogleCalendarEvent } from '@/lib/types/google-api';
+/**
+ * components/calendar/TodaySchedule.tsx
+ *
+ * 今日の予定表示コンポーネント
+ */
 
-function formatEventTime(event: GoogleCalendarEvent): string {
-  if (event.start.date) {
+import { Calendar, Clock, MapPin, ExternalLink } from 'lucide-react';
+import { useCalendarEvents } from '@/lib/hooks/useCalendarEvents';
+import type { FDCEvent } from '@/lib/types/google-calendar';
+
+function formatEventTime(event: FDCEvent): string {
+  if (event.isAllDay) {
     return '終日';
   }
 
-  if (event.start.dateTime) {
-    const start = new Date(event.start.dateTime);
-    const end = event.end.dateTime ? new Date(event.end.dateTime) : null;
+  const start = event.startTime.toLocaleTimeString('ja-JP', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 
-    const startTime = start.toLocaleTimeString('ja-JP', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+  const end = event.endTime.toLocaleTimeString('ja-JP', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 
-    if (end) {
-      const endTime = end.toLocaleTimeString('ja-JP', {
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-      return `${startTime} - ${endTime}`;
-    }
-
-    return startTime;
-  }
-
-  return '';
+  return `${start} - ${end}`;
 }
 
-function isEventNow(event: GoogleCalendarEvent): boolean {
-  if (!event.start.dateTime || !event.end.dateTime) return false;
+function isEventNow(event: FDCEvent): boolean {
+  if (event.isAllDay) return false;
 
   const now = Date.now();
-  const start = new Date(event.start.dateTime).getTime();
-  const end = new Date(event.end.dateTime).getTime();
-
-  return now >= start && now <= end;
+  return now >= event.startTime.getTime() && now <= event.endTime.getTime();
 }
 
-export function TodayEventsWidget() {
-  const { events, isLoading, error, isConnected } = useGoogleCalendar({
+export function TodaySchedule() {
+  const { events, isLoading, error, isConnected } = useCalendarEvents({
     range: 'today',
   });
 
+  const cardStyle: React.CSSProperties = {
+    background: 'var(--glass)',
+    backdropFilter: 'blur(10px)',
+    border: '1px solid var(--border-light)',
+    borderRadius: '12px',
+    padding: '20px',
+  };
+
+  const headerStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: '16px',
+  };
+
+  const titleStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    fontSize: '16px',
+    fontWeight: 600,
+    color: 'var(--text-dark)',
+  };
+
   if (isLoading) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <Calendar size={20} className="text-blue-500" />
-          <h3 className="font-bold text-gray-900">今日の予定</h3>
+      <div style={cardStyle}>
+        <div style={headerStyle}>
+          <div style={titleStyle}>
+            <Calendar size={20} color="var(--primary)" />
+            <span>今日の予定</span>
+          </div>
         </div>
-        <div className="animate-pulse space-y-3">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="h-16 bg-gray-100 rounded-lg" />
-          ))}
+        <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
+          読み込み中...
         </div>
       </div>
     );
@@ -879,15 +824,17 @@ export function TodayEventsWidget() {
 
   if (!isConnected) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <Calendar size={20} className="text-blue-500" />
-          <h3 className="font-bold text-gray-900">今日の予定</h3>
+      <div style={cardStyle}>
+        <div style={headerStyle}>
+          <div style={titleStyle}>
+            <Calendar size={20} color="var(--primary)" />
+            <span>今日の予定</span>
+          </div>
         </div>
-        <div className="text-center py-8 text-gray-500">
-          <Calendar size={40} className="mx-auto mb-3 opacity-50" />
-          <p className="text-sm">Google カレンダーが連携されていません</p>
-          <p className="text-xs mt-1">再ログインして連携を許可してください</p>
+        <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
+          <Calendar size={40} style={{ opacity: 0.5, marginBottom: '12px' }} />
+          <p style={{ fontSize: '14px' }}>Google カレンダーが連携されていません</p>
+          <p style={{ fontSize: '12px', marginTop: '4px' }}>再ログインして連携を許可してください</p>
         </div>
       </div>
     );
@@ -895,65 +842,82 @@ export function TodayEventsWidget() {
 
   if (error) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <Calendar size={20} className="text-blue-500" />
-          <h3 className="font-bold text-gray-900">今日の予定</h3>
+      <div style={cardStyle}>
+        <div style={headerStyle}>
+          <div style={titleStyle}>
+            <Calendar size={20} color="var(--primary)" />
+            <span>今日の予定</span>
+          </div>
         </div>
-        <div className="text-center py-8 text-red-500">
-          <p className="text-sm">読み込みエラー</p>
+        <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--error)' }}>
+          <p style={{ fontSize: '14px' }}>読み込みエラー</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Calendar size={20} className="text-blue-500" />
-          <h3 className="font-bold text-gray-900">今日の予定</h3>
+    <div style={cardStyle}>
+      <div style={headerStyle}>
+        <div style={titleStyle}>
+          <Calendar size={20} color="var(--primary)" />
+          <span>今日の予定</span>
         </div>
-        <span className="text-xs text-gray-400">
+        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
           {events.length} 件
         </span>
       </div>
 
       {events.length === 0 ? (
-        <div className="text-center py-8 text-gray-400">
-          <Calendar size={32} className="mx-auto mb-2 opacity-50" />
-          <p className="text-sm">今日の予定はありません</p>
+        <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
+          <Calendar size={32} style={{ opacity: 0.5, marginBottom: '8px' }} />
+          <p style={{ fontSize: '14px' }}>今日の予定はありません</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {events.map(event => {
             const isNow = isEventNow(event);
             return (
               <div
                 key={event.id}
-                className={`p-3 rounded-lg border transition-colors ${
-                  isNow
-                    ? 'bg-blue-50 border-blue-200'
-                    : 'bg-gray-50 border-gray-100 hover:bg-gray-100'
-                }`}
+                style={{
+                  padding: '12px',
+                  borderRadius: '8px',
+                  border: isNow ? '1px solid var(--primary)' : '1px solid var(--border-light)',
+                  background: isNow ? 'var(--primary-alpha-05)' : 'var(--bg-gray)',
+                  transition: 'all 0.2s',
+                }}
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       {isNow && (
-                        <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+                        <span style={{
+                          width: '8px',
+                          height: '8px',
+                          backgroundColor: 'var(--primary)',
+                          borderRadius: '50%',
+                        }} />
                       )}
-                      <h4 className="font-medium text-gray-900 truncate">
+                      <h4 style={{
+                        fontWeight: 500,
+                        color: 'var(--text-dark)',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        fontSize: '14px',
+                        margin: 0,
+                      }}>
                         {event.summary || '(タイトルなし)'}
                       </h4>
                     </div>
-                    <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
-                      <span className="flex items-center gap-1">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <Clock size={12} />
                         {formatEventTime(event)}
                       </span>
                       {event.location && (
-                        <span className="flex items-center gap-1 truncate">
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           <MapPin size={12} />
                           {event.location}
                         </span>
@@ -965,7 +929,11 @@ export function TodayEventsWidget() {
                       href={event.htmlLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-white rounded transition-colors"
+                      style={{
+                        padding: '4px',
+                        color: 'var(--text-muted)',
+                        borderRadius: '4px',
+                      }}
                     >
                       <ExternalLink size={14} />
                     </a>
@@ -981,158 +949,228 @@ export function TodayEventsWidget() {
 }
 ```
 
-### 6.2 Google Tasks ウィジェット
+### 5.2 未分類イベント一覧コンポーネント
 
-**ファイル:** `components/dashboard/GoogleTasksWidget.tsx`
+**ファイル:** `components/calendar/UnclassifiedEvents.tsx`
 
 ```typescript
 'use client';
 
-import { CheckSquare, Square, ExternalLink } from 'lucide-react';
-import { useGoogleTasks } from '@/lib/hooks/useGoogleTasks';
-import type { GoogleTask } from '@/lib/types/google-api';
+/**
+ * components/calendar/UnclassifiedEvents.tsx
+ *
+ * 未分類イベント一覧（タスク化待ち）
+ */
 
-function formatDueDate(due: string | undefined): string | null {
-  if (!due) return null;
+import { HelpCircle, Calendar, Clock, ArrowRight } from 'lucide-react';
+import { useCalendarEvents } from '@/lib/hooks/useCalendarEvents';
+import { EVENT_CATEGORY_INFO, type EventCategory, type FDCEvent } from '@/lib/types/google-calendar';
 
-  const dueDate = new Date(due);
+interface UnclassifiedEventsProps {
+  onCategorize?: (event: FDCEvent, category: EventCategory) => void;
+}
+
+function formatEventTime(event: FDCEvent): string {
+  if (event.isAllDay) {
+    return '終日';
+  }
+  return event.startTime.toLocaleTimeString('ja-JP', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function formatEventDate(event: FDCEvent): string {
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const eventDate = event.startTime;
+
+  if (
+    today.getFullYear() === eventDate.getFullYear() &&
+    today.getMonth() === eventDate.getMonth() &&
+    today.getDate() === eventDate.getDate()
+  ) {
+    return '今日';
+  }
 
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
-  const dueDateOnly = new Date(dueDate);
-  dueDateOnly.setHours(0, 0, 0, 0);
-
-  if (dueDateOnly.getTime() === today.getTime()) {
-    return '今日';
-  }
-  if (dueDateOnly.getTime() === tomorrow.getTime()) {
+  if (
+    tomorrow.getFullYear() === eventDate.getFullYear() &&
+    tomorrow.getMonth() === eventDate.getMonth() &&
+    tomorrow.getDate() === eventDate.getDate()
+  ) {
     return '明日';
   }
-  if (dueDateOnly < today) {
-    return '期限切れ';
-  }
 
-  return dueDate.toLocaleDateString('ja-JP', {
+  return eventDate.toLocaleDateString('ja-JP', {
     month: 'short',
     day: 'numeric',
   });
 }
 
-export function GoogleTasksWidget() {
-  const { tasks, isLoading, error, isConnected } = useGoogleTasks();
+export function UnclassifiedEvents({ onCategorize }: UnclassifiedEventsProps) {
+  const { unclassifiedEvents, isLoading, error, isConnected, updateEventCategory } = useCalendarEvents({
+    range: 'week',
+  });
+
+  const handleCategorize = (event: FDCEvent, category: EventCategory) => {
+    updateEventCategory(event.id, category);
+    onCategorize?.(event, category);
+  };
+
+  const cardStyle: React.CSSProperties = {
+    background: 'var(--glass)',
+    backdropFilter: 'blur(10px)',
+    border: '1px solid var(--border-light)',
+    borderRadius: '12px',
+    padding: '20px',
+  };
+
+  const headerStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: '16px',
+  };
+
+  const titleStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    fontSize: '16px',
+    fontWeight: 600,
+    color: 'var(--text-dark)',
+  };
+
+  // 4象限のカテゴリボタン
+  const categoryButtons: EventCategory[] = ['spade', 'heart', 'diamond', 'club'];
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <CheckSquare size={20} className="text-green-500" />
-          <h3 className="font-bold text-gray-900">Google Tasks</h3>
+      <div style={cardStyle}>
+        <div style={headerStyle}>
+          <div style={titleStyle}>
+            <HelpCircle size={20} color="var(--text-muted)" />
+            <span>未分類イベント</span>
+          </div>
         </div>
-        <div className="animate-pulse space-y-3">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="h-12 bg-gray-100 rounded-lg" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (!isConnected) {
-    return (
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <CheckSquare size={20} className="text-green-500" />
-          <h3 className="font-bold text-gray-900">Google Tasks</h3>
-        </div>
-        <div className="text-center py-8 text-gray-500">
-          <CheckSquare size={40} className="mx-auto mb-3 opacity-50" />
-          <p className="text-sm">Google Tasks が連携されていません</p>
-          <p className="text-xs mt-1">再ログインして連携を許可してください</p>
+        <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
+          読み込み中...
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (!isConnected || error) {
+    return null;  // カレンダー未連携時は非表示
+  }
+
+  if (unclassifiedEvents.length === 0) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <CheckSquare size={20} className="text-green-500" />
-          <h3 className="font-bold text-gray-900">Google Tasks</h3>
+      <div style={cardStyle}>
+        <div style={headerStyle}>
+          <div style={titleStyle}>
+            <HelpCircle size={20} color="var(--text-muted)" />
+            <span>未分類イベント</span>
+          </div>
         </div>
-        <div className="text-center py-8 text-red-500">
-          <p className="text-sm">読み込みエラー</p>
+        <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
+          <HelpCircle size={32} style={{ opacity: 0.5, marginBottom: '8px' }} />
+          <p style={{ fontSize: '14px' }}>すべて分類済みです</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <CheckSquare size={20} className="text-green-500" />
-          <h3 className="font-bold text-gray-900">Google Tasks</h3>
+    <div style={cardStyle}>
+      <div style={headerStyle}>
+        <div style={titleStyle}>
+          <HelpCircle size={20} color="var(--text-muted)" />
+          <span>未分類イベント</span>
         </div>
-        <span className="text-xs text-gray-400">
-          {tasks.length} 件
+        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+          {unclassifiedEvents.length} 件
         </span>
       </div>
 
-      {tasks.length === 0 ? (
-        <div className="text-center py-8 text-gray-400">
-          <CheckSquare size={32} className="mx-auto mb-2 opacity-50" />
-          <p className="text-sm">未完了のタスクはありません</p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {tasks.map(task => {
-            const dueLabel = formatDueDate(task.due);
-            const isOverdue = dueLabel === '期限切れ';
+      <p style={{
+        fontSize: '12px',
+        color: 'var(--text-muted)',
+        marginBottom: '16px',
+        padding: '8px 12px',
+        background: 'var(--bg-gray)',
+        borderRadius: '6px',
+      }}>
+        カレンダーの予定を4象限に分類してタスク化しましょう
+      </p>
 
-            return (
-              <div
-                key={task.id}
-                className="p-3 rounded-lg bg-gray-50 border border-gray-100 hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5">
-                    {task.status === 'completed' ? (
-                      <CheckSquare size={18} className="text-green-500" />
-                    ) : (
-                      <Square size={18} className="text-gray-400" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className={`font-medium truncate ${
-                      task.status === 'completed'
-                        ? 'text-gray-400 line-through'
-                        : 'text-gray-900'
-                    }`}>
-                      {task.title}
-                    </h4>
-                    {task.notes && (
-                      <p className="text-xs text-gray-500 truncate mt-0.5">
-                        {task.notes}
-                      </p>
-                    )}
-                    {dueLabel && (
-                      <span className={`text-xs mt-1 inline-block ${
-                        isOverdue ? 'text-red-500' : 'text-gray-400'
-                      }`}>
-                        {dueLabel}
-                      </span>
-                    )}
-                  </div>
-                </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {unclassifiedEvents.map(event => (
+          <div
+            key={event.id}
+            style={{
+              padding: '12px',
+              borderRadius: '8px',
+              border: '1px solid var(--border-light)',
+              background: 'var(--bg-gray)',
+            }}
+          >
+            {/* イベント情報 */}
+            <div style={{ marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                <Calendar size={14} color="var(--text-muted)" />
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                  {formatEventDate(event)}
+                </span>
+                <Clock size={14} color="var(--text-muted)" />
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                  {formatEventTime(event)}
+                </span>
               </div>
-            );
-          })}
-        </div>
-      )}
+              <h4 style={{
+                fontWeight: 500,
+                color: 'var(--text-dark)',
+                fontSize: '14px',
+                margin: 0,
+              }}>
+                {event.summary || '(タイトルなし)'}
+              </h4>
+            </div>
+
+            {/* 分類ボタン */}
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {categoryButtons.map(category => {
+                const info = EVENT_CATEGORY_INFO[category];
+                return (
+                  <button
+                    key={category}
+                    onClick={() => handleCategorize(event, category)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '6px 10px',
+                      fontSize: '12px',
+                      fontWeight: 500,
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      background: info.bgColor,
+                      color: info.color,
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    {info.symbol}
+                    <ArrowRight size={12} />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -1140,38 +1178,130 @@ export function GoogleTasksWidget() {
 
 ### 確認ポイント
 
-- [ ] `components/dashboard/TodayEventsWidget.tsx` が作成された
-- [ ] `components/dashboard/GoogleTasksWidget.tsx` が作成された
+- [ ] `components/calendar/TodaySchedule.tsx` が作成された
+- [ ] `components/calendar/UnclassifiedEvents.tsx` が作成された
+- [ ] 4象限への分類ボタン（♠♥♦♣）が表示される
 
 ---
 
-## Step 7: ダッシュボードページ更新
+## Step 6: ダッシュボードに組み込み
 
-### 7.1 ダッシュボードにウィジェット追加
+### 6.1 ダッシュボードページ更新
 
-**ファイル:** `app/(app)/dashboard/page.tsx` を更新
-
-既存のダッシュボードページに Google ウィジェットを追加します。以下のインポートとコンポーネントを追加：
+**ファイル:** `app/(app)/dashboard/page.tsx`
 
 ```typescript
-// インポート追加
-import { TodayEventsWidget } from '@/components/dashboard/TodayEventsWidget';
+'use client';
+
+/**
+ * app/(app)/dashboard/page.tsx
+ *
+ * ダッシュボードページ
+ */
+
+import { LayoutDashboard } from 'lucide-react';
+import { TodaySchedule } from '@/components/calendar/TodaySchedule';
+import { UnclassifiedEvents } from '@/components/calendar/UnclassifiedEvents';
 import { GoogleTasksWidget } from '@/components/dashboard/GoogleTasksWidget';
 
-// JSX 内に追加（適切な場所に）
-<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-  <TodayEventsWidget />
-  <GoogleTasksWidget />
-</div>
+export default function DashboardPage() {
+  return (
+    <div>
+      {/* ヘッダー */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        marginBottom: '24px',
+      }}>
+        <LayoutDashboard size={28} color="var(--primary)" />
+        <h2 style={{
+          fontSize: '24px',
+          fontWeight: 700,
+          color: 'var(--text-dark)',
+          margin: 0,
+          border: 'none',
+          padding: 0,
+        }}>
+          ダッシュボード
+        </h2>
+      </div>
+
+      {/* カレンダー・タスク ウィジェット */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+        gap: '20px',
+        marginBottom: '24px',
+      }}>
+        <TodaySchedule />
+        <GoogleTasksWidget />
+      </div>
+
+      {/* 未分類イベント */}
+      <div style={{ marginBottom: '24px' }}>
+        <UnclassifiedEvents />
+      </div>
+
+      {/* クイックリンク */}
+      <div className="card">
+        <h3 style={{
+          fontSize: '16px',
+          fontWeight: 600,
+          color: 'var(--text-dark)',
+          marginBottom: '16px',
+        }}>
+          クイックアクセス
+        </h3>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+          gap: '12px',
+        }}>
+          <a href="/tasks" className="btn btn-secondary" style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            gap: '8px', padding: '16px', textDecoration: 'none',
+          }}>
+            <span style={{ fontSize: '24px' }}>📋</span>
+            <span style={{ fontSize: '14px', fontWeight: 500 }}>タスク</span>
+          </a>
+          <a href="/leads" className="btn btn-secondary" style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            gap: '8px', padding: '16px', textDecoration: 'none',
+          }}>
+            <span style={{ fontSize: '24px' }}>👥</span>
+            <span style={{ fontSize: '14px', fontWeight: 500 }}>リード</span>
+          </a>
+          <a href="/clients" className="btn btn-secondary" style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            gap: '8px', padding: '16px', textDecoration: 'none',
+          }}>
+            <span style={{ fontSize: '24px' }}>🏢</span>
+            <span style={{ fontSize: '14px', fontWeight: 500 }}>クライアント</span>
+          </a>
+          <a href="/action-maps" className="btn btn-secondary" style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            gap: '8px', padding: '16px', textDecoration: 'none',
+          }}>
+            <span style={{ fontSize: '24px' }}>🗺️</span>
+            <span style={{ fontSize: '14px', fontWeight: 500 }}>Action Map</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
 ```
 
 ### 確認ポイント
 
-- [ ] ダッシュボードに Google ウィジェットが表示される
+- [ ] ダッシュボードに `TodaySchedule` が表示される
+- [ ] ダッシュボードに `UnclassifiedEvents` が表示される
+- [ ] 未分類イベントの分類ボタンが動作する
 
 ---
 
-## Step 8: 型チェック & ビルド
+## Step 7: 型チェック & ビルド
 
 ```bash
 npm run type-check
@@ -1185,49 +1315,40 @@ npm run build
 
 ---
 
-## Step 9: 動作確認
+## Step 8: 動作確認
 
-### 9.1 開発サーバー起動
+### 8.1 開発サーバー起動
 
 ```bash
 npm run dev
 ```
 
-### 9.2 テスト手順
+### 8.2 確認項目
 
-1. http://localhost:3000/login にアクセス
-2. Google でログイン（Calendar/Tasks 権限を許可）
-3. ダッシュボードで以下を確認：
-   - 「今日の予定」ウィジェットが表示される
-   - 「Google Tasks」ウィジェットが表示される
-   - Google カレンダーの予定が表示される
-   - Google Tasks の未完了タスクが表示される
-
-### 確認ポイント
-
-- [ ] 今日の予定ウィジェットが正常に表示される
-- [ ] Google Tasks ウィジェットが正常に表示される
-- [ ] 未連携時は適切なメッセージが表示される
+1. http://localhost:3000/dashboard にアクセス
+2. Google ログイン（再ログインが必要な場合あり）
+3. 以下を確認:
+   - [ ] 「今日の予定」に Google カレンダーの予定が表示される
+   - [ ] 「未分類イベント」に今週の予定が表示される
+   - [ ] 分類ボタン（♠♥♦♣）をクリックするとカテゴリが変わる
+   - [ ] 現在進行中のイベントがハイライトされる
 
 ---
 
-## Step 10: Git プッシュ
+## Step 9: Git プッシュ
 
 ```bash
 git add -A
-git commit -m "Phase 13: Google Calendar/Tasks API 連携機能
+git commit -m "Phase 13: Google Calendar API 連携 + 未分類イベント管理
 
-- lib/types/google-api.ts: Google API 型定義
-- lib/server/google-calendar.ts: Calendar API クライアント
-- lib/server/google-tasks.ts: Tasks API クライアント
-- app/api/google/calendar/events: カレンダーイベント API
-- app/api/google/calendar/list: カレンダー一覧 API
-- app/api/google/tasks: タスク取得 API
-- app/api/google/tasks/lists: タスクリスト API
-- lib/hooks/useGoogleCalendar.ts: カレンダー用 Hook
-- lib/hooks/useGoogleTasks.ts: タスク用 Hook
-- components/dashboard/TodayEventsWidget.tsx: 今日の予定ウィジェット
-- components/dashboard/GoogleTasksWidget.tsx: Google Tasks ウィジェット
+- lib/types/google-calendar.ts: カレンダー型定義 + アイゼンハワーマトリクス（6カテゴリ）
+- lib/server/google-calendar.ts: Calendar API クライアント + FDCEvent変換
+- lib/hooks/useCalendarEvents.ts: イベント取得 Hook（分類機能付き）
+- lib/hooks/useCalendars.ts: カレンダー一覧 Hook
+- app/api/google/calendars: カレンダー API Routes
+- components/calendar/TodaySchedule.tsx: 今日の予定
+- components/calendar/UnclassifiedEvents.tsx: 未分類イベント + 4象限分類機能
+- dashboard: カレンダーウィジェット統合
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
@@ -1241,44 +1362,53 @@ git push
 ## 完了チェックリスト
 
 ### 型定義
-- [ ] `lib/types/google-api.ts` 作成
+- [ ] `lib/types/google-calendar.ts` 作成
+- [ ] EventCategory 型（6種類: spade, heart, diamond, club, joker, unclassified）
+- [ ] EVENT_CATEGORY_INFO（各カテゴリの表示情報）
+- [ ] FDCEvent インターフェース
 
 ### サーバーサイド
 - [ ] `lib/server/google-calendar.ts` 作成
-- [ ] `lib/server/google-tasks.ts` 作成
+- [ ] getCalendarList 関数
+- [ ] getCalendarEvents 関数
+- [ ] getTodayEvents / getWeekEvents 関数
+- [ ] convertToFDCEvent / convertEventsToFDC 関数
 
-### API エンドポイント
-- [ ] `app/api/google/calendar/events/route.ts` 作成
-- [ ] `app/api/google/calendar/list/route.ts` 作成
-- [ ] `app/api/google/tasks/route.ts` 作成
-- [ ] `app/api/google/tasks/lists/route.ts` 作成
+### API Routes
+- [ ] `app/api/google/calendars/route.ts` 作成
+- [ ] `app/api/google/calendars/events/route.ts` 作成
 
-### クライアントサイド
-- [ ] `lib/hooks/useGoogleCalendar.ts` 作成
-- [ ] `lib/hooks/useGoogleTasks.ts` 作成
-- [ ] `components/dashboard/TodayEventsWidget.tsx` 作成
-- [ ] `components/dashboard/GoogleTasksWidget.tsx` 作成
+### React Hooks
+- [ ] `lib/hooks/useCalendarEvents.ts` 作成
+- [ ] `lib/hooks/useCalendars.ts` 作成
+- [ ] unclassifiedEvents 取得機能
+- [ ] updateEventCategory 機能
 
-### 動作確認
-- [ ] 今日の予定が表示される
-- [ ] Google Tasks が表示される
-- [ ] 未連携時のメッセージ表示
+### UI コンポーネント
+- [ ] `components/calendar/TodaySchedule.tsx` 作成
+- [ ] `components/calendar/UnclassifiedEvents.tsx` 作成
+- [ ] 4象限分類ボタン実装（♠♥♦♣）
+
+### 統合
+- [ ] ダッシュボードに組み込み
 - [ ] 型チェック成功
 - [ ] ビルド成功
+- [ ] 動作確認完了
 - [ ] Git プッシュ完了
 
 ---
 
 ## 次のステップ（Phase 14 以降）
 
-1. **カレンダーイベント作成機能**
-   - Task からカレンダーイベントを作成
-   - 予定の編集・削除
+1. **タスク化機能の実装**
+   - 分類したイベントを tasks テーブルに保存
+   - suit カラムにカテゴリを設定
+   - google_event_id でリンク
 
-2. **双方向同期**
-   - FDC Task と Google Tasks の同期
-   - 変更の自動反映
+2. **4象限マトリクスビュー**
+   - Kanban 風の4象限表示
+   - ドラッグ&ドロップで分類変更
 
-3. **週間カレンダービュー**
-   - 週単位でのイベント表示
-   - ドラッグ＆ドロップ対応
+3. **双方向同期**
+   - FDC タスク → Google Tasks
+   - 完了状態の同期

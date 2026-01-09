@@ -5,11 +5,13 @@
  *
  * ダッシュボードページ
  * - Google Calendar / Tasks ウィジェット表示
+ * - 未分類イベントの4象限分類
  */
 
 import { LayoutDashboard } from 'lucide-react';
 import { TodayEventsWidget } from '@/components/dashboard/TodayEventsWidget';
 import { GoogleTasksWidget } from '@/components/dashboard/GoogleTasksWidget';
+import { UnclassifiedEvents } from '@/components/calendar/UnclassifiedEvents';
 
 export default function DashboardPage() {
   return (
@@ -43,6 +45,11 @@ export default function DashboardPage() {
       }}>
         <TodayEventsWidget />
         <GoogleTasksWidget />
+      </div>
+
+      {/* 未分類イベント */}
+      <div style={{ marginBottom: '24px' }}>
+        <UnclassifiedEvents />
       </div>
 
       {/* クイックリンク */}

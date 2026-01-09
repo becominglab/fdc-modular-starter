@@ -1,9 +1,9 @@
 'use client';
 
 /**
- * components/dashboard/TodayEventsWidget.tsx
+ * components/calendar/TodaySchedule.tsx
  *
- * 今日の予定ウィジェット（FDCEvent対応）
+ * 今日の予定表示コンポーネント
  */
 
 import { Calendar, Clock, MapPin, ExternalLink } from 'lucide-react';
@@ -35,7 +35,7 @@ function isEventNow(event: FDCEvent): boolean {
   return now >= event.startTime.getTime() && now <= event.endTime.getTime();
 }
 
-export function TodayEventsWidget() {
+export function TodaySchedule() {
   const { events, isLoading, error, isConnected } = useGoogleCalendar({
     range: 'today',
   });

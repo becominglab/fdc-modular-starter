@@ -5,6 +5,7 @@ import type {
   GoogleCalendarListResponse,
   GoogleCalendarEventsResponse,
 } from '@/lib/types/google-api';
+import type { FDCEvent } from '@/lib/types/google-calendar';
 
 const CALENDAR_API_BASE = 'https://www.googleapis.com/calendar/v3';
 
@@ -96,22 +97,64 @@ export async function getTodayEvents(userId: string): Promise<GoogleCalendarEven
 }
 
 /**
- * 今週のイベントを取得
+ * 今週のイベントを取得（今日から7日間）
  */
 export async function getWeekEvents(userId: string): Promise<GoogleCalendarEvent[]> {
   const now = new Date();
-  const startOfWeek = new Date(now);
-  startOfWeek.setDate(now.getDate() - now.getDay()); // 日曜日
-  startOfWeek.setHours(0, 0, 0, 0);
-
-  const endOfWeek = new Date(startOfWeek);
-  endOfWeek.setDate(startOfWeek.getDate() + 7);
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const endOfWeek = new Date(startOfDay);
+  endOfWeek.setDate(endOfWeek.getDate() + 7);
 
   return getCalendarEvents(userId, 'primary', {
-    timeMin: startOfWeek.toISOString(),
+    timeMin: startOfDay.toISOString(),
     timeMax: endOfWeek.toISOString(),
     singleEvents: true,
     orderBy: 'startTime',
-    maxResults: 50,
+    maxResults: 100,
   });
+}
+
+/**
+ * GoogleCalendarEvent を FDCEvent に変換
+ */
+export function convertToFDCEvent(event: GoogleCalendarEvent): FDCEvent {
+  const isAllDay = !event.start.dateTime;
+
+  let startTime: Date;
+  let endTime: Date;
+
+  if (isAllDay) {
+    // 終日イベント
+    startTime = new Date(event.start.date + 'T00:00:00');
+    endTime = new Date(event.end.date + 'T00:00:00');
+  } else {
+    // 時刻指定イベント
+    startTime = new Date(event.start.dateTime!);
+    endTime = new Date(event.end.dateTime!);
+  }
+
+  return {
+    id: event.id,
+    status: event.status,
+    htmlLink: event.htmlLink || '',
+    summary: event.summary,
+    description: event.description,
+    location: event.location,
+    start: event.start,
+    end: event.end,
+    category: 'unclassified',  // デフォルトは未分類
+    isAllDay,
+    startTime,
+    endTime,
+  };
+}
+
+/**
+ * イベント一覧を FDCEvent に変換
+ */
+export function convertEventsToFDC(events: GoogleCalendarEvent[]): FDCEvent[] {
+  return events
+    .filter(event => event.status !== 'cancelled')
+    .map(convertToFDCEvent)
+    .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
 }

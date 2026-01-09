@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { getTodayEvents, getWeekEvents, getCalendarEvents } from '@/lib/server/google-calendar';
+import {
+  getTodayEvents,
+  getWeekEvents,
+  getCalendarEvents,
+  convertEventsToFDC,
+} from '@/lib/server/google-calendar';
 
 export async function GET(request: NextRequest) {
   try {
@@ -43,7 +48,9 @@ export async function GET(request: NextRequest) {
         events = await getTodayEvents(user.id);
     }
 
-    return NextResponse.json(events);
+    // FDCEvent 形式に変換（category: 'unclassified' 付き）
+    const fdcEvents = convertEventsToFDC(events);
+    return NextResponse.json(fdcEvents);
   } catch (error) {
     console.error('Calendar events API error:', error);
 

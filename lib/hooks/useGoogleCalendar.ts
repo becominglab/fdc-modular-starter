@@ -1,7 +1,13 @@
 'use client';
 
+/**
+ * lib/hooks/useGoogleCalendar.ts
+ *
+ * カレンダーイベント取得 Hook（FDCEvent対応 + 分類機能）
+ */
+
 import { useState, useEffect, useCallback } from 'react';
-import type { GoogleCalendarEvent } from '@/lib/types/google-api';
+import type { FDCEvent, EventCategory } from '@/lib/types/google-calendar';
 
 type Range = 'today' | 'week' | 'custom';
 
@@ -15,7 +21,7 @@ interface UseGoogleCalendarOptions {
 export function useGoogleCalendar(options: UseGoogleCalendarOptions = {}) {
   const { range = 'today', timeMin, timeMax, autoFetch = true } = options;
 
-  const [events, setEvents] = useState<GoogleCalendarEvent[]>([]);
+  const [events, setEvents] = useState<FDCEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(true);
@@ -46,7 +52,13 @@ export function useGoogleCalendar(options: UseGoogleCalendarOptions = {}) {
       }
 
       const data = await response.json();
-      setEvents(data);
+      // startTime/endTime を Date オブジェクトに変換
+      const eventsWithDates = data.map((event: FDCEvent) => ({
+        ...event,
+        startTime: new Date(event.startTime),
+        endTime: new Date(event.endTime),
+      }));
+      setEvents(eventsWithDates);
       setIsConnected(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -61,11 +73,31 @@ export function useGoogleCalendar(options: UseGoogleCalendarOptions = {}) {
     }
   }, [fetchEvents, autoFetch]);
 
+  // カテゴリでフィルタリング
+  const getEventsByCategory = useCallback((category: EventCategory) => {
+    return events.filter(event => event.category === category);
+  }, [events]);
+
+  // 未分類イベントを取得
+  const unclassifiedEvents = events.filter(event => event.category === 'unclassified');
+
+  // イベントのカテゴリを更新（ローカルステート）
+  const updateEventCategory = useCallback((eventId: string, category: EventCategory) => {
+    setEvents(prev =>
+      prev.map(event =>
+        event.id === eventId ? { ...event, category } : event
+      )
+    );
+  }, []);
+
   return {
     events,
+    unclassifiedEvents,
     isLoading,
     error,
     isConnected,
     refetch: fetchEvents,
+    getEventsByCategory,
+    updateEventCategory,
   };
 }
