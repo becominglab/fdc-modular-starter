@@ -1033,3 +1033,618 @@ html {
   outline: none;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
+
+/*
+ * Lean Canvas スタイル（Phase 16）
+ */
+
+/* 一覧ページ */
+.lean-canvas-list-page {
+  padding: 24px 0;
+}
+
+.lean-canvas-list-page .page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.lean-canvas-list-page .header-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lean-canvas-list-page .brand-selector {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.lean-canvas-list-page .brand-select {
+  appearance: none;
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 36px 10px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-medium);
+  cursor: pointer;
+  min-width: 180px;
+  transition: all 0.2s;
+}
+
+.lean-canvas-list-page .brand-select:hover {
+  border-color: var(--primary-alpha-50);
+}
+
+.lean-canvas-list-page .brand-select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-alpha-10);
+}
+
+.lean-canvas-list-page .select-icon {
+  position: absolute;
+  right: 12px;
+  pointer-events: none;
+  color: var(--text-muted);
+}
+
+.lean-canvas-list-page .header-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lean-canvas-list-page .header-content h1 {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.lean-canvas-list-page .empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+}
+
+.lean-canvas-list-page .empty-state svg {
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.lean-canvas-list-page .empty-state h2 {
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+/* キャンバス作成フォーム */
+.create-form-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.create-form {
+  background: var(--bg-white);
+  border-radius: 12px;
+  padding: 24px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: var(--shadow-hover);
+}
+
+.create-form h2 {
+  margin-bottom: 16px;
+  font-size: 18px;
+}
+
+.create-form .form-input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.create-form .form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+/* キャンバスカード */
+.canvas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.canvas-card {
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.2s;
+}
+
+.canvas-card:hover {
+  box-shadow: var(--shadow-hover);
+  border-color: var(--primary-alpha-30);
+}
+
+.canvas-card .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.canvas-card .card-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.canvas-card .card-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.canvas-card .card-description {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.canvas-card .card-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.canvas-card .card-open {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px;
+  background: var(--primary-alpha-05);
+  border: none;
+  border-radius: 8px;
+  color: var(--primary);
+  font-weight: 500;
+  cursor: pointer;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.canvas-card .card-open:hover {
+  background: var(--primary-alpha-10);
+}
+
+/* 詳細ページ */
+.lean-canvas-detail-page {
+  padding: 24px 0;
+}
+
+.lean-canvas-detail-page .page-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.lean-canvas-detail-page .btn-back {
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  color: var(--text-medium);
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.lean-canvas-detail-page .btn-back:hover {
+  background: var(--primary-alpha-10);
+}
+
+.lean-canvas-detail-page .header-title {
+  flex: 1;
+}
+
+.lean-canvas-detail-page .editable-title {
+  font-size: 24px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  margin: -4px -8px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.lean-canvas-detail-page .editable-title:hover {
+  background: var(--primary-alpha-05);
+}
+
+.lean-canvas-detail-page .title-edit {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.lean-canvas-detail-page .title-input {
+  font-size: 24px;
+  font-weight: 600;
+  border: 2px solid var(--primary);
+  border-radius: 6px;
+  padding: 4px 8px;
+  outline: none;
+}
+
+.lean-canvas-detail-page .view-toggle {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-gray);
+  padding: 4px;
+  border-radius: 8px;
+}
+
+.lean-canvas-detail-page .toggle-btn {
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: all 0.2s;
+}
+
+.lean-canvas-detail-page .toggle-btn.active {
+  background: var(--bg-white);
+  color: var(--primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Lean Canvas グリッド（9ブロック） */
+.lean-canvas-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(3, auto);
+  grid-template-areas:
+    "problem solution unique-value unfair-advantage customer-segments"
+    "problem key-metrics unique-value channels customer-segments"
+    "cost-structure cost-structure cost-structure revenue-streams revenue-streams";
+  gap: 12px;
+  min-height: 600px;
+}
+
+.lean-canvas-grid .grid-cell {
+  min-height: 180px;
+}
+
+/* 各ブロックエディタ */
+.lean-canvas-block {
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border-left: 4px solid var(--block-color, var(--primary));
+}
+
+.lean-canvas-block .block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.lean-canvas-block .block-title {
+  display: flex;
+  flex-direction: column;
+}
+
+.lean-canvas-block .block-label {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--block-color, var(--primary));
+}
+
+.lean-canvas-block .block-label-en {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.lean-canvas-block .block-saving {
+  color: var(--primary);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.lean-canvas-block .block-description {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.lean-canvas-block .block-items {
+  flex: 1;
+  list-style: none;
+  margin-bottom: 12px;
+  overflow-y: auto;
+}
+
+.lean-canvas-block .block-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: var(--bg-gray);
+  border-radius: 6px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.lean-canvas-block .item-grip {
+  color: var(--text-muted);
+  cursor: grab;
+  flex-shrink: 0;
+}
+
+.lean-canvas-block .item-text {
+  flex: 1;
+  cursor: pointer;
+}
+
+.lean-canvas-block .item-text:hover {
+  color: var(--primary);
+}
+
+.lean-canvas-block .item-edit-input {
+  flex: 1;
+  border: 1px solid var(--primary);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 13px;
+  outline: none;
+}
+
+.lean-canvas-block .item-remove {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--text-muted);
+  border-radius: 4px;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.lean-canvas-block .item-remove:hover {
+  background: var(--danger);
+  color: white;
+}
+
+.lean-canvas-block .block-add {
+  display: flex;
+  gap: 8px;
+}
+
+.lean-canvas-block .add-input {
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.lean-canvas-block .add-input:focus {
+  border-color: var(--block-color, var(--primary));
+}
+
+.lean-canvas-block .add-button {
+  background: var(--block-color, var(--primary));
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.lean-canvas-block .add-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.lean-canvas-block .add-button:not(:disabled):hover {
+  opacity: 0.9;
+}
+
+/* Customer Journey */
+.customer-journey {
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.customer-journey .journey-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.customer-journey .journey-flow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0;
+  overflow-x: auto;
+  padding: 16px 0;
+}
+
+.customer-journey .journey-step-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.customer-journey .journey-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 140px;
+  padding: 16px;
+  background: linear-gradient(135deg, var(--bg-white) 0%, var(--bg-gray) 100%);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: all 0.2s;
+}
+
+.customer-journey .journey-step:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.customer-journey .step-phase {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--step-color, var(--primary));
+  margin-bottom: 8px;
+}
+
+.customer-journey .step-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--step-color, var(--primary));
+  color: white;
+  border-radius: 50%;
+  margin-bottom: 8px;
+}
+
+.customer-journey .step-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-medium);
+  margin-bottom: 8px;
+}
+
+.customer-journey .step-content {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
+  width: 100%;
+}
+
+.customer-journey .step-content ul {
+  list-style: none;
+  padding: 0;
+}
+
+.customer-journey .step-content li {
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.customer-journey .step-more {
+  color: var(--primary);
+  font-weight: 500;
+}
+
+.customer-journey .step-empty {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.customer-journey .journey-arrow {
+  padding: 0 8px;
+  color: var(--text-muted);
+}
+
+/* Journey View レイアウト */
+.journey-view .journey-grid {
+  margin-top: 24px;
+}
+
+/* ボタンアイコン */
+.btn-icon {
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  color: var(--text-muted);
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.btn-icon:hover {
+  background: var(--primary-alpha-10);
+  color: var(--primary);
+}
+
+.btn-icon.btn-danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger);
+}
+
+/* レスポンシブ */
+@media (max-width: 1200px) {
+  .lean-canvas-grid {
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: auto;
+    grid-template-areas:
+      "problem solution unique-value"
+      "unfair-advantage customer-segments key-metrics"
+      "channels cost-structure revenue-streams";
+  }
+}
+
+@media (max-width: 768px) {
+  .lean-canvas-grid {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "problem"
+      "customer-segments"
+      "unique-value"
+      "solution"
+      "unfair-advantage"
+      "key-metrics"
+      "channels"
+      "cost-structure"
+      "revenue-streams";
+  }
+
+  .customer-journey .journey-flow {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .customer-journey .journey-arrow {
+    transform: rotate(90deg);
+    padding: 8px 0;
+  }
+}

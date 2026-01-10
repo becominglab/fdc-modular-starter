@@ -835,8 +835,3 @@ export const Constants = {
     },
   },
 } as const
-
-// Convenience type aliases
-export type DbTask = Database['public']['Tables']['tasks']['Row'];
-export type DbTaskInsert = Database['public']['Tables']['tasks']['Insert'];
-export type DbTaskUpdate = Database['public']['Tables']['tasks']['Update'];

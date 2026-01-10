@@ -20,6 +20,7 @@ import {
   Target,
   Grid2X2,
   Palette,
+  LayoutGrid,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -38,6 +39,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/leads', label: 'リード', icon: Users },
   { href: '/clients', label: 'クライアント', icon: Briefcase },
   { href: '/brand', label: 'ブランド', icon: Palette },
+  { href: '/lean-canvas', label: 'Lean Canvas', icon: LayoutGrid },
 ];
 
 // デモユーザーの型
