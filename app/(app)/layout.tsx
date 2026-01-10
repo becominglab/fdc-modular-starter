@@ -19,6 +19,7 @@ import {
   Map,
   Target,
   Grid2X2,
+  Palette,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -36,6 +37,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/tasks', label: 'タスク', icon: CheckSquare },
   { href: '/leads', label: 'リード', icon: Users },
   { href: '/clients', label: 'クライアント', icon: Briefcase },
+  { href: '/brand', label: 'ブランド', icon: Palette },
 ];
 
 // デモユーザーの型

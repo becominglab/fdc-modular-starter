@@ -207,6 +207,80 @@ export type Database = {
           },
         ]
       }
+      brand_points: {
+        Row: {
+          brand_id: string
+          content: string
+          created_at: string | null
+          id: string
+          point_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          brand_id: string
+          content?: string
+          created_at?: string | null
+          id?: string
+          point_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          brand_id?: string
+          content?: string
+          created_at?: string | null
+          id?: string
+          point_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_points_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      brands: {
+        Row: {
+          created_at: string | null
+          id: string
+          logo_url: string | null
+          name: string
+          primary_color: string | null
+          secondary_color: string | null
+          story: string | null
+          tagline: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          logo_url?: string | null
+          name: string
+          primary_color?: string | null
+          secondary_color?: string | null
+          story?: string | null
+          tagline?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          logo_url?: string | null
+          name?: string
+          primary_color?: string | null
+          secondary_color?: string | null
+          story?: string | null
+          tagline?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           company: string
@@ -382,6 +456,7 @@ export type Database = {
           completed: boolean | null
           created_at: string | null
           description: string | null
+          google_event_id: string | null
           id: string
           scheduled_date: string | null
           status: string | null
@@ -395,6 +470,7 @@ export type Database = {
           completed?: boolean | null
           created_at?: string | null
           description?: string | null
+          google_event_id?: string | null
           id?: string
           scheduled_date?: string | null
           status?: string | null
@@ -408,6 +484,7 @@ export type Database = {
           completed?: boolean | null
           created_at?: string | null
           description?: string | null
+          google_event_id?: string | null
           id?: string
           scheduled_date?: string | null
           status?: string | null
