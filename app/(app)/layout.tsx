@@ -42,6 +42,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/brand', label: 'ブランド', icon: Palette },
   { href: '/lean-canvas', label: 'Lean Canvas', icon: LayoutGrid },
   { href: '/product-sections', label: '製品セクション', icon: Package },
+  { href: '/mvv', label: 'MVV', icon: Target },
 ];
 
 // デモユーザーの型

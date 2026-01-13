@@ -451,6 +451,47 @@ export type Database = {
           },
         ]
       }
+      mvv: {
+        Row: {
+          brand_id: string
+          created_at: string | null
+          id: string
+          mission: string | null
+          updated_at: string | null
+          user_id: string
+          values: Json | null
+          vision: string | null
+        }
+        Insert: {
+          brand_id: string
+          created_at?: string | null
+          id?: string
+          mission?: string | null
+          updated_at?: string | null
+          user_id: string
+          values?: Json | null
+          vision?: string | null
+        }
+        Update: {
+          brand_id?: string
+          created_at?: string | null
+          id?: string
+          mission?: string | null
+          updated_at?: string | null
+          user_id?: string
+          values?: Json | null
+          vision?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mvv_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: true
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       objectives: {
         Row: {
           created_at: string | null

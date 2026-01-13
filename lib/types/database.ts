@@ -451,6 +451,47 @@ export type Database = {
           },
         ]
       }
+      mvv: {
+        Row: {
+          brand_id: string
+          created_at: string | null
+          id: string
+          mission: string | null
+          updated_at: string | null
+          user_id: string
+          values: Json | null
+          vision: string | null
+        }
+        Insert: {
+          brand_id: string
+          created_at?: string | null
+          id?: string
+          mission?: string | null
+          updated_at?: string | null
+          user_id: string
+          values?: Json | null
+          vision?: string | null
+        }
+        Update: {
+          brand_id?: string
+          created_at?: string | null
+          id?: string
+          mission?: string | null
+          updated_at?: string | null
+          user_id?: string
+          values?: Json | null
+          vision?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mvv_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: true
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       objectives: {
         Row: {
           created_at: string | null
@@ -949,3 +990,8 @@ export const Constants = {
 export type DbTask = Database['public']['Tables']['tasks']['Row'];
 export type DbTaskInsert = Database['public']['Tables']['tasks']['Insert'];
 export type DbTaskUpdate = Database['public']['Tables']['tasks']['Update'];
+
+// MVV convenience types
+export type MVVRow = Database['public']['Tables']['mvv']['Row'];
+export type MVVInsert = Database['public']['Tables']['mvv']['Insert'];
+export type MVVUpdate = Database['public']['Tables']['mvv']['Update'];

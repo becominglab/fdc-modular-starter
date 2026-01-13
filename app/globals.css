@@ -2152,3 +2152,405 @@ html {
     grid-template-columns: 1fr;
   }
 }
+
+/*
+ * MVV 統合ビュー（Phase 19）
+ */
+
+/* ページレイアウト */
+.mvv-page {
+  padding: 24px 0;
+}
+
+.mvv-page .header-subtitle {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-left: 8px;
+}
+
+.mvv-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+
+@media (max-width: 1024px) {
+  .mvv-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mvv-edit-section,
+.mvv-unified-section {
+  min-width: 0;
+}
+
+.mvv-unified-section h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--text-dark);
+}
+
+/* MVV セクション */
+.mvv-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.mvv-item {
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.mvv-item-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.mvv-item-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  color: white;
+}
+
+.mvv-item-icon.mission {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+}
+
+.mvv-item-icon.vision {
+  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+}
+
+.mvv-item-icon.values {
+  background: linear-gradient(135deg, #ec4899, #be185d);
+}
+
+.mvv-item-label {
+  flex: 1;
+}
+
+.mvv-item-label h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.mvv-item-label .label-ja {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.mvv-item-description {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.mvv-item-content {
+  padding: 16px;
+  background: var(--bg-gray);
+  border-radius: 8px;
+}
+
+.mvv-item-content .content-text {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text-dark);
+  margin: 0;
+}
+
+.mvv-item-content .content-empty {
+  font-size: 14px;
+  color: var(--text-muted);
+  font-style: italic;
+  margin: 0;
+}
+
+/* 編集フォーム */
+.mvv-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mvv-edit-form .edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Values リスト */
+.mvv-section .values-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.value-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg-gray);
+  border-radius: 8px;
+}
+
+.value-item .value-text {
+  flex: 1;
+  font-size: 14px;
+}
+
+.value-item .value-actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.value-item:hover .value-actions {
+  opacity: 1;
+}
+
+.value-item .value-edit {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+}
+
+.value-add {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.value-add .form-input {
+  flex: 1;
+}
+
+.values-examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.values-examples .examples-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.values-examples .example-chip {
+  font-size: 12px;
+  padding: 4px 10px;
+  background: var(--bg-gray);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.values-examples .example-chip:hover {
+  background: var(--primary-alpha-10);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* 折り畳みコンポーネント */
+.collapsible {
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.collapsible-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 16px 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.collapsible-header:hover {
+  background: var(--bg-gray);
+}
+
+.collapsible-icon {
+  color: var(--text-muted);
+}
+
+.collapsible-title {
+  flex: 1;
+}
+
+.collapsible-title .title-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.collapsible-title .subtitle-text {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.collapsible-content {
+  padding: 0 20px 20px;
+}
+
+/* 統合ビュー */
+.unified-view {
+  display: flex;
+  flex-direction: column;
+}
+
+.unified-brand {
+  padding: 16px;
+}
+
+.unified-brand .brand-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.unified-brand .brand-logo {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: var(--bg-gray);
+}
+
+.unified-brand .brand-info {
+  flex: 1;
+}
+
+.unified-brand .brand-info h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.unified-brand .tagline {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 4px 0 0;
+}
+
+.unified-brand .brand-story {
+  font-size: 13px;
+  color: var(--text-light);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.unified-mvv .mvv-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.unified-mvv .mvv-summary-item {
+  padding: 12px;
+  background: var(--bg-gray);
+  border-radius: 8px;
+}
+
+.unified-mvv .mvv-summary-item .label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.unified-mvv .mvv-summary-item p {
+  font-size: 14px;
+  color: var(--text-dark);
+  margin: 0;
+}
+
+.unified-mvv .unified-values-list {
+  list-style: disc;
+  padding-left: 20px;
+  margin: 0;
+}
+
+.unified-canvas .canvas-summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.unified-canvas .canvas-summary-item {
+  padding: 12px;
+  background: var(--bg-gray);
+  border-radius: 8px;
+}
+
+.unified-canvas .canvas-summary-item .label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.unified-canvas .canvas-summary-item ul {
+  list-style: disc;
+  padding-left: 16px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.unified-canvas .canvas-summary-item .more {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.unified-canvas .canvas-summary-item .empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+  margin: 0;
+}
+
+.unified-canvas .view-full-link {
+  display: block;
+  text-align: center;
+  font-size: 13px;
+  color: var(--primary);
+}
+
+.unified-view .empty-message {
+  text-align: center;
+  padding: 24px;
+  color: var(--text-muted);
+}
+
+.unified-view .empty-message p {
+  margin-bottom: 12px;
+}
