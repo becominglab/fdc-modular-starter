@@ -59,21 +59,20 @@ export interface ProductSectionUpdate {
   description?: string | null;
 }
 
-// 商品作成用
+// 商品作成用（section_id は API の URL パスから取得）
 export interface ProductCreate {
-  section_id: string;
   tier: ProductTier;
   name: string;
-  description?: string;
+  description?: string | null;
   price_type?: PriceType;
-  price_min?: number;
-  price_max?: number;
-  price_label?: string;
+  price_min?: number | null;
+  price_max?: number | null;
+  price_label?: string | null;
   delivery_type?: DeliveryType;
-  duration?: string;
+  duration?: string | null;
   features?: string[];
-  target_audience?: string;
-  conversion_goal?: string;
+  target_audience?: string | null;
+  conversion_goal?: string | null;
   is_flagship?: boolean;
 }
 

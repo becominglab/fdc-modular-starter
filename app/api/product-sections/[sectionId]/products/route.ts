@@ -23,7 +23,6 @@ const createProductSchema = z.object({
   target_audience: z.string().nullish(),
   conversion_goal: z.string().nullish(),
   is_flagship: z.boolean().optional(),
-  section_id: z.string().optional(), // URL から取得するので無視
 });
 
 // GET: 商品一覧取得

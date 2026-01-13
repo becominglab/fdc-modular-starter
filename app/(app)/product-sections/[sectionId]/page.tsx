@@ -83,12 +83,7 @@ export default function ProductSectionDetailPage() {
     if (editingProduct) {
       return await updateProduct(editingProduct.id, data as ProductUpdate);
     } else if (addingTier) {
-      const createData: ProductCreate = {
-        ...data,
-        section_id: sectionId,
-        tier: addingTier,
-      } as ProductCreate;
-      const product = await createProduct(createData);
+      const product = await createProduct({ ...data, tier: addingTier } as ProductCreate);
       return !!product;
     }
     return false;
