@@ -484,6 +484,115 @@ export type Database = {
         }
         Relationships: []
       }
+      product_sections: {
+        Row: {
+          brand_id: string
+          created_at: string | null
+          description: string | null
+          id: string
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          brand_id: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          title?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          brand_id?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_sections_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          conversion_goal: string | null
+          created_at: string | null
+          delivery_type: string
+          description: string | null
+          duration: string | null
+          features: Json
+          id: string
+          is_flagship: boolean
+          name: string
+          price_label: string | null
+          price_max: number | null
+          price_min: number | null
+          price_type: string
+          section_id: string
+          sort_order: number
+          target_audience: string | null
+          tier: string
+          updated_at: string | null
+        }
+        Insert: {
+          conversion_goal?: string | null
+          created_at?: string | null
+          delivery_type?: string
+          description?: string | null
+          duration?: string | null
+          features?: Json
+          id?: string
+          is_flagship?: boolean
+          name: string
+          price_label?: string | null
+          price_max?: number | null
+          price_min?: number | null
+          price_type?: string
+          section_id: string
+          sort_order?: number
+          target_audience?: string | null
+          tier: string
+          updated_at?: string | null
+        }
+        Update: {
+          conversion_goal?: string | null
+          created_at?: string | null
+          delivery_type?: string
+          description?: string | null
+          duration?: string | null
+          features?: Json
+          id?: string
+          is_flagship?: boolean
+          name?: string
+          price_label?: string | null
+          price_max?: number | null
+          price_min?: number | null
+          price_type?: string
+          section_id?: string
+          sort_order?: number
+          target_audience?: string | null
+          tier?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "product_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prospects: {
         Row: {
           company: string

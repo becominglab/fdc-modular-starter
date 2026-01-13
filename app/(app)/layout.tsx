@@ -21,6 +21,7 @@ import {
   Grid2X2,
   Palette,
   LayoutGrid,
+  Package,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -40,6 +41,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/clients', label: 'クライアント', icon: Briefcase },
   { href: '/brand', label: 'ブランド', icon: Palette },
   { href: '/lean-canvas', label: 'Lean Canvas', icon: LayoutGrid },
+  { href: '/product-sections', label: '製品セクション', icon: Package },
 ];
 
 // デモユーザーの型
