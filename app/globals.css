@@ -2554,3 +2554,442 @@ html {
 .unified-view .empty-message p {
   margin-bottom: 12px;
 }
+
+/*
+ * ワークスペース管理者ページ（Phase 20）
+ */
+
+/* ページレイアウト */
+.admin-page {
+  padding: 24px 0;
+}
+
+.admin-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.admin-header h1 {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.admin-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.admin-loading,
+.admin-error {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+}
+
+.admin-error svg {
+  color: var(--error);
+  margin-bottom: 16px;
+}
+
+.admin-error h2 {
+  font-size: 20px;
+  margin-bottom: 8px;
+  border: none;
+}
+
+/* 管理セクション共通 */
+.admin-section {
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.admin-section .section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.admin-section .section-header h2 {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.admin-section .section-header svg {
+  color: var(--primary);
+}
+
+.admin-section .section-loading {
+  text-align: center;
+  padding: 32px;
+  color: var(--text-muted);
+}
+
+.admin-section .empty-message {
+  text-align: center;
+  padding: 24px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* メンバー数 */
+.member-count {
+  font-size: 13px;
+  color: var(--text-muted);
+  background: var(--bg-gray);
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+
+/* メンバーリスト */
+.members-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.member-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--bg-gray);
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.member-item:hover {
+  background: var(--bg-white);
+  box-shadow: var(--shadow);
+}
+
+.member-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.member-avatar {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: white;
+  font-weight: 600;
+  font-size: 16px;
+  border-radius: 50%;
+}
+
+.member-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.member-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-dark);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.you-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  background: var(--primary-alpha-10);
+  color: var(--primary);
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.member-email {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.member-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ロールバッジ */
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--role-color, var(--primary));
+  color: white;
+}
+
+.role-badge-sm {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+/* アクションメニュー */
+.action-menu-wrapper {
+  position: relative;
+}
+
+.action-menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 4px;
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-hover);
+  min-width: 160px;
+  z-index: 100;
+  overflow: hidden;
+}
+
+.action-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  font-size: 13px;
+  color: var(--text-dark);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.action-menu button:hover {
+  background: var(--bg-gray);
+}
+
+.action-menu button.danger {
+  color: var(--error);
+}
+
+.action-menu button.danger:hover {
+  background: rgba(244, 67, 54, 0.1);
+}
+
+/* 招待フォーム */
+.invite-form {
+  background: var(--bg-gray);
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.invite-form .form-row {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.invite-form .form-input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.invite-form .form-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-alpha-10);
+}
+
+.invite-form .form-select {
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 14px;
+  min-width: 120px;
+  cursor: pointer;
+}
+
+/* 招待リスト */
+.invitations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.invitation-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--bg-gray);
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.invitation-item.expired {
+  opacity: 0.6;
+}
+
+.invitation-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.invitation-email {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-dark);
+}
+
+.invitation-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.invitation-date {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.invitation-actions {
+  display: flex;
+  gap: 4px;
+}
+
+/* 監査ログ */
+.audit-logs-section .audit-logs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.audit-log-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 12px;
+  background: var(--bg-gray);
+  border-radius: 8px;
+}
+
+.log-time {
+  font-size: 12px;
+  color: var(--text-muted);
+  min-width: 120px;
+  flex-shrink: 0;
+}
+
+.log-content {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.log-action {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-dark);
+}
+
+.log-details {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.load-more-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px;
+  margin-top: 12px;
+  background: none;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.load-more-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-alpha-05);
+}
+
+.load-more-btn:disabled {
+  cursor: not-allowed;
+}
+
+/* レスポンシブ */
+@media (max-width: 768px) {
+  .admin-content {
+    gap: 16px;
+  }
+
+  .admin-section {
+    padding: 16px;
+  }
+
+  .member-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .member-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .invite-form .form-row {
+    flex-direction: column;
+  }
+
+  .invitation-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .invitation-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .audit-log-item {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .log-time {
+    min-width: unset;
+  }
+}

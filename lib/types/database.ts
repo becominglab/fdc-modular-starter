@@ -207,6 +207,53 @@ export type Database = {
           },
         ]
       }
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          details: Json
+          id: string
+          ip_address: string | null
+          target_id: string | null
+          target_type: string | null
+          user_agent: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          details?: Json
+          id?: string
+          ip_address?: string | null
+          target_id?: string | null
+          target_type?: string | null
+          user_agent?: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          details?: Json
+          id?: string
+          ip_address?: string | null
+          target_id?: string | null
+          target_type?: string | null
+          user_agent?: string | null
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brand_points: {
         Row: {
           brand_id: string
@@ -327,6 +374,50 @@ export type Database = {
             columns: ["prospect_id"]
             isOneToOne: false
             referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invitations: {
+        Row: {
+          accepted_at: string | null
+          created_at: string | null
+          created_by: string
+          email: string
+          expires_at: string
+          id: string
+          role: string
+          token: string
+          workspace_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string | null
+          created_by: string
+          email: string
+          expires_at: string
+          id?: string
+          role?: string
+          token: string
+          workspace_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string | null
+          created_by?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          role?: string
+          token?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -986,12 +1077,7 @@ export const Constants = {
   },
 } as const
 
-// Convenience type aliases
+// Type helpers for backwards compatibility
 export type DbTask = Database['public']['Tables']['tasks']['Row'];
 export type DbTaskInsert = Database['public']['Tables']['tasks']['Insert'];
 export type DbTaskUpdate = Database['public']['Tables']['tasks']['Update'];
-
-// MVV convenience types
-export type MVVRow = Database['public']['Tables']['mvv']['Row'];
-export type MVVInsert = Database['public']['Tables']['mvv']['Insert'];
-export type MVVUpdate = Database['public']['Tables']['mvv']['Update'];

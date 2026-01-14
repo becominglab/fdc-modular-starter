@@ -22,6 +22,7 @@ import {
   Palette,
   LayoutGrid,
   Package,
+  Settings,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -43,6 +44,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/lean-canvas', label: 'Lean Canvas', icon: LayoutGrid },
   { href: '/product-sections', label: '製品セクション', icon: Package },
   { href: '/mvv', label: 'MVV', icon: Target },
+  { href: '/admin', label: '管理', icon: Settings },
 ];
 
 // デモユーザーの型

@@ -207,6 +207,53 @@ export type Database = {
           },
         ]
       }
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          details: Json
+          id: string
+          ip_address: string | null
+          target_id: string | null
+          target_type: string | null
+          user_agent: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          details?: Json
+          id?: string
+          ip_address?: string | null
+          target_id?: string | null
+          target_type?: string | null
+          user_agent?: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          details?: Json
+          id?: string
+          ip_address?: string | null
+          target_id?: string | null
+          target_type?: string | null
+          user_agent?: string | null
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brand_points: {
         Row: {
           brand_id: string
@@ -331,6 +378,50 @@ export type Database = {
           },
         ]
       }
+      invitations: {
+        Row: {
+          accepted_at: string | null
+          created_at: string | null
+          created_by: string
+          email: string
+          expires_at: string
+          id: string
+          role: string
+          token: string
+          workspace_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string | null
+          created_by: string
+          email: string
+          expires_at: string
+          id?: string
+          role?: string
+          token: string
+          workspace_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string | null
+          created_by?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          role?: string
+          token?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       key_results: {
         Row: {
           created_at: string | null
@@ -451,6 +542,47 @@ export type Database = {
           },
         ]
       }
+      mvv: {
+        Row: {
+          brand_id: string
+          created_at: string | null
+          id: string
+          mission: string | null
+          updated_at: string | null
+          user_id: string
+          values: Json | null
+          vision: string | null
+        }
+        Insert: {
+          brand_id: string
+          created_at?: string | null
+          id?: string
+          mission?: string | null
+          updated_at?: string | null
+          user_id: string
+          values?: Json | null
+          vision?: string | null
+        }
+        Update: {
+          brand_id?: string
+          created_at?: string | null
+          id?: string
+          mission?: string | null
+          updated_at?: string | null
+          user_id?: string
+          values?: Json | null
+          vision?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mvv_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: true
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       objectives: {
         Row: {
           created_at: string | null
@@ -483,6 +615,115 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      product_sections: {
+        Row: {
+          brand_id: string
+          created_at: string | null
+          description: string | null
+          id: string
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          brand_id: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          title?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          brand_id?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_sections_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          conversion_goal: string | null
+          created_at: string | null
+          delivery_type: string
+          description: string | null
+          duration: string | null
+          features: Json
+          id: string
+          is_flagship: boolean
+          name: string
+          price_label: string | null
+          price_max: number | null
+          price_min: number | null
+          price_type: string
+          section_id: string
+          sort_order: number
+          target_audience: string | null
+          tier: string
+          updated_at: string | null
+        }
+        Insert: {
+          conversion_goal?: string | null
+          created_at?: string | null
+          delivery_type?: string
+          description?: string | null
+          duration?: string | null
+          features?: Json
+          id?: string
+          is_flagship?: boolean
+          name: string
+          price_label?: string | null
+          price_max?: number | null
+          price_min?: number | null
+          price_type?: string
+          section_id: string
+          sort_order?: number
+          target_audience?: string | null
+          tier: string
+          updated_at?: string | null
+        }
+        Update: {
+          conversion_goal?: string | null
+          created_at?: string | null
+          delivery_type?: string
+          description?: string | null
+          duration?: string | null
+          features?: Json
+          id?: string
+          is_flagship?: boolean
+          name?: string
+          price_label?: string | null
+          price_max?: number | null
+          price_min?: number | null
+          price_type?: string
+          section_id?: string
+          sort_order?: number
+          target_audience?: string | null
+          tier?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "product_sections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       prospects: {
         Row: {

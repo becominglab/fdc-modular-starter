@@ -107,6 +107,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    const oldRole = targetMember.role;
+
     // ロールを更新
     const { data: updatedMember, error: updateError } = await supabase
       .from('workspace_members')
@@ -122,6 +124,20 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         { status: 500 }
       );
     }
+
+    // 監査ログ記録
+    await supabase.from('audit_logs').insert({
+      workspace_id: workspaceId,
+      user_id: user.id,
+      action: 'role_changed',
+      target_type: 'member',
+      target_id: memberId,
+      details: {
+        target_user_id: targetMember.user_id,
+        old_role: oldRole,
+        new_role: newRole,
+      },
+    });
 
     return NextResponse.json(updatedMember);
   } catch (error) {
@@ -222,6 +238,19 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         { status: 500 }
       );
     }
+
+    // 監査ログ記録
+    await supabase.from('audit_logs').insert({
+      workspace_id: workspaceId,
+      user_id: user.id,
+      action: 'member_removed',
+      target_type: 'member',
+      target_id: memberId,
+      details: {
+        removed_user_id: targetMember.user_id,
+        removed_role: targetMember.role,
+      },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {
