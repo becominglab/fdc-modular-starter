@@ -21,30 +21,30 @@ const taskColumns: ExportColumn<Record<string, unknown>>[] = [
   { key: 'title', label: 'タイトル' },
   { key: 'description', label: '説明' },
   { key: 'status', label: 'ステータス' },
-  { key: 'priority', label: '優先度' },
-  { key: 'due_date', label: '期限' },
+  { key: 'suit', label: '優先度' },
+  { key: 'scheduled_date', label: '予定日' },
   { key: 'created_at', label: '作成日' },
 ];
 
 // リードのカラム定義
 const prospectColumns: ExportColumn<Record<string, unknown>>[] = [
-  { key: 'company_name', label: '会社名' },
-  { key: 'contact_name', label: '担当者名' },
+  { key: 'company', label: '会社名' },
+  { key: 'name', label: '担当者名' },
   { key: 'email', label: 'メールアドレス' },
   { key: 'phone', label: '電話番号' },
   { key: 'status', label: 'ステータス' },
-  { key: 'source', label: '流入元' },
+  { key: 'notes', label: '備考' },
   { key: 'created_at', label: '作成日' },
 ];
 
 // クライアントのカラム定義
 const clientColumns: ExportColumn<Record<string, unknown>>[] = [
-  { key: 'company_name', label: '会社名' },
-  { key: 'contact_name', label: '担当者名' },
+  { key: 'company', label: '会社名' },
+  { key: 'name', label: '担当者名' },
   { key: 'email', label: 'メールアドレス' },
   { key: 'phone', label: '電話番号' },
-  { key: 'contract_value', label: '契約金額' },
-  { key: 'contract_start', label: '契約開始日' },
+  { key: 'contract_date', label: '契約日' },
+  { key: 'notes', label: '備考' },
   { key: 'created_at', label: '作成日' },
 ];
 
@@ -91,8 +91,8 @@ export function useExport(workspaceId: string | null) {
       const formattedData = data.map((item: Record<string, unknown>) => ({
         ...item,
         created_at: formatDateForExport(item.created_at as string | null),
-        due_date: item.due_date ? formatDateForExport(item.due_date as string | null) : '',
-        contract_start: item.contract_start ? formatDateForExport(item.contract_start as string | null) : '',
+        scheduled_date: item.scheduled_date ? formatDateForExport(item.scheduled_date as string | null) : '',
+        contract_date: item.contract_date ? formatDateForExport(item.contract_date as string | null) : '',
       }));
 
       const csv = convertToCSV(formattedData, columnsMap[type]);

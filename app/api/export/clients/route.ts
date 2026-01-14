@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     const { data: clients, error } = await (serviceClient as any)
       .from('clients')
       .select('*')
-      .eq('workspace_id', workspaceId)
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
     if (error) {

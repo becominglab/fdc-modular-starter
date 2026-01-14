@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Download, Loader2 } from 'lucide-react';
+import { Plus, Download, Upload, Loader2 } from 'lucide-react';
 import { useTasks } from '@/lib/hooks/useTasks';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { useExport } from '@/lib/hooks/useExport';
 import { TaskBoard, AddTaskForm, EditTaskForm } from '@/components/tasks';
+import { ImportModal } from '@/components/import/ImportModal';
 import type { Task, TaskStatus } from '@/lib/types/task';
 
 export default function TasksPage() {
@@ -58,6 +59,7 @@ export default function TasksPage() {
 
   const [isAddFormOpen, setIsAddFormOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [isImportOpen, setIsImportOpen] = useState(false);
 
   const handleDelete = async (id: string) => {
     if (confirm('このタスクを削除しますか？')) {
@@ -96,6 +98,13 @@ export default function TasksPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={() => setIsImportOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+          >
+            <Upload size={18} />
+            CSV取込
+          </button>
           <button
             onClick={exportTasks}
             disabled={exporting === 'tasks'}
@@ -163,6 +172,14 @@ export default function TasksPage() {
         task={editingTask}
         onSave={updateTask}
         onClose={() => setEditingTask(null)}
+      />
+
+      {/* インポートモーダル */}
+      <ImportModal
+        isOpen={isImportOpen}
+        type="tasks"
+        onClose={() => setIsImportOpen(false)}
+        onComplete={() => window.location.reload()}
       />
     </div>
   );

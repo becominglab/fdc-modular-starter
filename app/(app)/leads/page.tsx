@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Download, Loader2 } from 'lucide-react';
+import { Download, Upload, Loader2 } from 'lucide-react';
 import { useProspects } from '@/lib/hooks/useProspects';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { useExport } from '@/lib/hooks/useExport';
+import { ImportModal } from '@/components/import/ImportModal';
 import {
   ProspectFilters,
   KanbanView,
@@ -70,6 +71,7 @@ export default function LeadsPage() {
 
   const [isAddFormOpen, setIsAddFormOpen] = useState(false);
   const [editingProspect, setEditingProspect] = useState<Prospect | null>(null);
+  const [isImportOpen, setIsImportOpen] = useState(false);
 
   const handleAdd = async (input: CreateProspectInput) => {
     await addProspect(input);
@@ -111,14 +113,23 @@ export default function LeadsPage() {
             見込み客の進捗を管理
           </p>
         </div>
-        <button
-          onClick={exportProspects}
-          disabled={exporting === 'prospects'}
-          className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 disabled:opacity-50"
-        >
-          {exporting === 'prospects' ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
-          CSV出力
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setIsImportOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+          >
+            <Upload size={18} />
+            CSV取込
+          </button>
+          <button
+            onClick={exportProspects}
+            disabled={exporting === 'prospects'}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 disabled:opacity-50"
+          >
+            {exporting === 'prospects' ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
+            CSV出力
+          </button>
+        </div>
       </div>
 
       {/* 統計情報 */}
@@ -192,6 +203,14 @@ export default function LeadsPage() {
         prospect={editingProspect}
         onUpdate={handleUpdate}
         onClose={() => setEditingProspect(null)}
+      />
+
+      {/* インポートモーダル */}
+      <ImportModal
+        isOpen={isImportOpen}
+        type="prospects"
+        onClose={() => setIsImportOpen(false)}
+        onComplete={() => window.location.reload()}
       />
     </div>
   );

@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Plus, Users, Download, Loader2 } from 'lucide-react';
+import { Search, Plus, Users, Download, Upload, Loader2 } from 'lucide-react';
 import { useClients } from '@/lib/hooks/useClients';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { useExport } from '@/lib/hooks/useExport';
+import { ImportModal } from '@/components/import/ImportModal';
 import {
   ClientList,
   AddClientForm,
@@ -62,6 +63,7 @@ export default function ClientsPage() {
 
   const [isAddFormOpen, setIsAddFormOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [isImportOpen, setIsImportOpen] = useState(false);
 
   const handleAdd = async (input: CreateClientInput) => {
     await addClient(input);
@@ -103,14 +105,23 @@ export default function ClientsPage() {
             成約済みクライアントを管理
           </p>
         </div>
-        <button
-          onClick={exportClients}
-          disabled={exporting === 'clients'}
-          className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 disabled:opacity-50"
-        >
-          {exporting === 'clients' ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
-          CSV出力
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setIsImportOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+          >
+            <Upload size={18} />
+            CSV取込
+          </button>
+          <button
+            onClick={exportClients}
+            disabled={exporting === 'clients'}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 disabled:opacity-50"
+          >
+            {exporting === 'clients' ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
+            CSV出力
+          </button>
+        </div>
       </div>
 
       {/* 統計情報 */}
@@ -174,6 +185,14 @@ export default function ClientsPage() {
         client={editingClient}
         onUpdate={handleUpdate}
         onClose={() => setEditingClient(null)}
+      />
+
+      {/* インポートモーダル */}
+      <ImportModal
+        isOpen={isImportOpen}
+        type="clients"
+        onClose={() => setIsImportOpen(false)}
+        onComplete={() => window.location.reload()}
       />
     </div>
   );
