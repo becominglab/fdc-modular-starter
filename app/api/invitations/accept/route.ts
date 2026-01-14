@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { sendInvitationAcceptedEmail } from '@/lib/services/email';
 import { z } from 'zod';
 
 const acceptInvitationSchema = z.object({
@@ -123,6 +124,39 @@ export async function POST(request: NextRequest) {
     });
 
     const workspaceName = (invitation.workspaces as { id: string; name: string } | null)?.name || 'ワークスペース';
+
+    // オーナーに通知メール送信
+    const { data: ownerMember } = await serviceClient
+      .from('workspace_members')
+      .select('user_id')
+      .eq('workspace_id', invitation.workspace_id)
+      .eq('role', 'owner')
+      .single();
+
+    if (ownerMember) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: ownerProfile } = await (serviceClient as any)
+        .from('profiles')
+        .select('email')
+        .eq('id', ownerMember.user_id)
+        .single();
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: acceptedProfile } = await (serviceClient as any)
+        .from('profiles')
+        .select('email, full_name')
+        .eq('id', user.id)
+        .single();
+
+      if (ownerProfile?.email) {
+        await sendInvitationAcceptedEmail({
+          to: ownerProfile.email,
+          acceptedUserName: acceptedProfile?.full_name || acceptedProfile?.email || 'ユーザー',
+          acceptedUserEmail: acceptedProfile?.email || invitation.email,
+          workspaceName,
+        });
+      }
+    }
 
     return NextResponse.json({
       success: true,

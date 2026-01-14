@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
-import { sendInvitationEmail } from '@/lib/email';
+import { sendInvitationEmail } from '@/lib/services/email';
 import { z } from 'zod';
 import crypto from 'crypto';
 
@@ -165,13 +165,21 @@ export async function POST(
       },
     });
 
+    // 招待者のプロフィール取得
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: inviterProfile } = await (serviceClient as any)
+      .from('profiles')
+      .select('full_name, email')
+      .eq('id', user.id)
+      .single();
+
     // 招待メールを送信
     const emailResult = await sendInvitationEmail({
       to: result.data.email,
+      inviterName: inviterProfile?.full_name || inviterProfile?.email || 'チームメンバー',
       workspaceName,
-      inviterEmail: user.email || 'unknown',
+      invitationToken: token,
       role: result.data.role,
-      token,
       expiresAt: expiresAt.toISOString(),
     });
 
