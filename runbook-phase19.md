@@ -1,524 +1,686 @@
-# Phase 19: MVV（Mission/Vision/Value）統合ビュー
+# Phase 19: Super Admin (SA) ダッシュボード
 
 ## 目標
 
-MVV（Mission/Vision/Value）を管理する統合ビューを実装：
-- Mission、Vision、Value の編集
-- Brand + Lean Canvas + MVV の統合表示
-- 折り畳み式レイアウト
+システム全体を管理する Super Admin (SA) 機能を実装します。
 
----
+### 習得する概念
 
-## MVVとは
+- **Super Admin (SA)**: システム全体を管理する最上位権限
+- **マルチテナント管理**: 複数ワークスペースの一元管理
+- **システムメトリクス**: ユーザー数、API 呼び出し数などの指標
+- **セキュリティ監視**: 不正アクセスの検知
 
-| 要素 | 意味 | 例 |
-|------|------|-----|
-| Mission | 存在意義・使命 | 「テクノロジーで人々を豊かに」 |
-| Vision | 将来像 | 「すべての人がクリエイターに」 |
-| Value | 価値観・行動指針 | 「失敗を恐れずチャレンジ」 |
+### 権限階層
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│  MVV 統合ビュー                                                      │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  ▼ ブランド概要                                                     │
-│  ┌─────────────────────────────────────────────────────────────┐   │
-│  │  ロゴ・タグライン・ストーリー                                  │   │
-│  └─────────────────────────────────────────────────────────────┘   │
-│                                                                     │
-│  ▼ Mission（使命）                                                  │
-│  ┌─────────────────────────────────────────────────────────────┐   │
-│  │  テクノロジーで人々の生活を豊かにする                          │   │
-│  └─────────────────────────────────────────────────────────────┘   │
-│                                                                     │
-│  ▼ Vision（将来像）                                                 │
-│  ┌─────────────────────────────────────────────────────────────┐   │
-│  │  すべての人がクリエイターになれる世界                          │   │
-│  └─────────────────────────────────────────────────────────────┘   │
-│                                                                     │
-│  ▼ Values（価値観）                                                 │
-│  ┌─────────────────────────────────────────────────────────────┐   │
-│  │  • 失敗を恐れずチャレンジ                                      │   │
-│  │  • ユーザーファースト                                          │   │
-│  │  • 透明性のあるコミュニケーション                              │   │
-│  └─────────────────────────────────────────────────────────────┘   │
-│                                                                     │
-│  ▶ Lean Canvas サマリー（折りたたみ）                               │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
+Super Admin (SA)
+  │ ← システム全体を管理
+  ├─ Workspace 1
+  │    ├─ OWNER ← ワークスペースを所有
+  │    ├─ ADMIN ← メンバー管理可能
+  │    └─ MEMBER ← 一般ユーザー
+  └─ Workspace 2
+       ├─ OWNER
+       └─ ...
 ```
 
 ---
 
-## 習得する新しい概念
+## Step 1: Supabase テーブル更新
 
-| 概念 | 説明 |
-|------|------|
-| MVV | Mission/Vision/Value。企業理念の3要素 |
-| 統合ビュー | 複数の情報を1画面にまとめて表示 |
-| アコーディオン | クリックで開閉できる折り畳みUI |
-| JSON配列 | 複数の値を1カラムに保存（values） |
+### 1.1 profiles テーブルに is_super_admin カラム追加
 
----
-
-## 前提条件
-
-- [ ] Phase 15 完了（Brand 動作）
-- [ ] Phase 16 完了（Lean Canvas 動作）
-- [ ] 開発サーバーが起動している
-
----
-
-## Step 1: DB マイグレーション
-
-### 1.1 MVV テーブル作成
-
-**ファイル:** `supabase/migrations/20260113_phase19_mvv.sql`
+Supabase Dashboard → SQL Editor で実行:
 
 ```sql
--- ==============================================
--- Phase 19: MVV（Mission/Vision/Value）
--- ==============================================
+-- profiles に is_super_admin カラムを追加
+ALTER TABLE profiles
+ADD COLUMN IF NOT EXISTS is_super_admin BOOLEAN DEFAULT FALSE;
 
--- MVV テーブル
-CREATE TABLE IF NOT EXISTS mvv (
+-- 自分を Super Admin に設定（メールアドレスを置き換え）
+UPDATE profiles
+SET is_super_admin = TRUE
+WHERE email = 'YOUR_EMAIL@example.com';
+```
+
+### 1.2 system_metrics テーブル作成
+
+```sql
+-- システムメトリクス記録テーブル
+CREATE TABLE IF NOT EXISTS system_metrics (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  brand_id UUID NOT NULL REFERENCES brands(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  mission TEXT,
-  vision TEXT,
-  values JSONB DEFAULT '[]'::jsonb,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-
-  -- 1ブランドに1つのMVV
-  CONSTRAINT unique_brand_mvv UNIQUE (brand_id)
+  metric_type TEXT NOT NULL,
+  value NUMERIC NOT NULL DEFAULT 0,
+  details JSONB DEFAULT '{}',
+  recorded_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- インデックス
-CREATE INDEX IF NOT EXISTS idx_mvv_brand_id ON mvv(brand_id);
-CREATE INDEX IF NOT EXISTS idx_mvv_user_id ON mvv(user_id);
+CREATE INDEX IF NOT EXISTS idx_system_metrics_type_date
+ON system_metrics(metric_type, recorded_at DESC);
 
--- RLS 有効化
-ALTER TABLE mvv ENABLE ROW LEVEL SECURITY;
+-- RLS
+ALTER TABLE system_metrics ENABLE ROW LEVEL SECURITY;
 
--- RLS ポリシー: 自分のMVVのみ
-CREATE POLICY "Users can manage own mvv"
-  ON mvv
-  FOR ALL
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+-- SA のみ読み取り可能
+CREATE POLICY "SA can read system_metrics"
+ON system_metrics FOR SELECT
+USING (
+  EXISTS (
+    SELECT 1 FROM profiles
+    WHERE profiles.id = auth.uid()
+    AND profiles.is_super_admin = TRUE
+  )
+);
 
--- updated_at 自動更新トリガー
-CREATE OR REPLACE FUNCTION update_mvv_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER mvv_updated_at
-  BEFORE UPDATE ON mvv
-  FOR EACH ROW
-  EXECUTE FUNCTION update_mvv_updated_at();
+-- SA のみ挿入可能
+CREATE POLICY "SA can insert system_metrics"
+ON system_metrics FOR INSERT
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM profiles
+    WHERE profiles.id = auth.uid()
+    AND profiles.is_super_admin = TRUE
+  )
+);
 ```
 
-### 1.2 マイグレーション実行
+### 1.3 security_events テーブル作成
 
-```bash
-supabase db push
+```sql
+-- セキュリティイベント記録テーブル
+CREATE TABLE IF NOT EXISTS security_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_type TEXT NOT NULL,
+  severity TEXT NOT NULL DEFAULT 'info',
+  user_id UUID REFERENCES auth.users(id),
+  ip_address TEXT,
+  user_agent TEXT,
+  details JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- インデックス
+CREATE INDEX IF NOT EXISTS idx_security_events_type
+ON security_events(event_type, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_security_events_severity
+ON security_events(severity, created_at DESC);
+
+-- RLS
+ALTER TABLE security_events ENABLE ROW LEVEL SECURITY;
+
+-- SA のみアクセス可能
+CREATE POLICY "SA can manage security_events"
+ON security_events FOR ALL
+USING (
+  EXISTS (
+    SELECT 1 FROM profiles
+    WHERE profiles.id = auth.uid()
+    AND profiles.is_super_admin = TRUE
+  )
+);
 ```
 
 ### 確認ポイント
 
-- [ ] `mvv` テーブルが作成された
+- [ ] profiles テーブルに is_super_admin カラムが追加された
+- [ ] 自分のアカウントが is_super_admin = true になっている
+- [ ] system_metrics テーブルが作成された
+- [ ] security_events テーブルが作成された
 - [ ] RLS ポリシーが設定された
-- [ ] `unique_brand_mvv` 制約が設定された
 
 ---
 
 ## Step 2: 型定義の作成
 
-### 2.1 MVV 型定義
-
-**ファイル:** `lib/types/mvv.ts`
+### ファイル: `lib/types/super-admin.ts`
 
 ```typescript
 /**
- * lib/types/mvv.ts
+ * lib/types/super-admin.ts
  *
- * MVV（Mission/Vision/Value）の型定義
+ * Super Admin 機能の型定義
  */
 
-// MVV エンティティ
-export interface MVV {
+// テナント（ワークスペース）概要
+export interface TenantSummary {
   id: string;
-  brand_id: string;
-  user_id: string;
-  mission: string | null;
-  vision: string | null;
-  values: string[];
-  created_at: string;
-  updated_at: string;
+  name: string;
+  slug: string;
+  ownerEmail: string;
+  memberCount: number;
+  createdAt: string;
+  lastActivityAt: string | null;
 }
 
-// MVV 作成用
-export interface MVVCreate {
-  brand_id: string;
-  mission?: string | null;
-  vision?: string | null;
-  values?: string[];
+// システムメトリクスの種類
+export type MetricType =
+  | 'active_users'
+  | 'total_workspaces'
+  | 'api_calls'
+  | 'storage_used'
+  | 'invitations_sent';
+
+// システムメトリクス
+export interface SystemMetric {
+  id: string;
+  metricType: MetricType;
+  value: number;
+  details: Record<string, unknown>;
+  recordedAt: string;
 }
 
-// MVV 更新用
-export interface MVVUpdate {
-  mission?: string | null;
-  vision?: string | null;
-  values?: string[];
+// システム統計サマリー
+export interface SystemStats {
+  totalUsers: number;
+  activeUsersToday: number;
+  totalWorkspaces: number;
+  pendingInvitations: number;
+  securityEventsToday: number;
 }
 
-// MVV セクション情報
-export const MVV_SECTION_INFO = {
-  mission: {
-    label: 'Mission',
-    labelJa: '使命',
-    description: '会社・サービスの存在意義。なぜ存在するのか？',
-    placeholder: '例: テクノロジーで人々の生活を豊かにする',
-    examples: [
-      'すべての人に学びの機会を届ける',
-      '持続可能な社会を次世代に残す',
-      'ビジネスの成長を加速させる',
-    ],
-  },
-  vision: {
-    label: 'Vision',
-    labelJa: '将来像',
-    description: '実現したい未来の姿。どこを目指すのか？',
-    placeholder: '例: すべての人がクリエイターになれる世界',
-    examples: [
-      '誰もが自分らしく働ける社会',
-      'テクノロジーと人間が共存する未来',
-      '国境を超えてつながる世界',
-    ],
-  },
-  values: {
-    label: 'Values',
-    labelJa: '価値観',
-    description: '大切にする行動指針。どう行動するか？',
-    placeholder: '例: ユーザーファースト',
-    examples: [
-      '失敗を恐れずチャレンジ',
-      '透明性のあるコミュニケーション',
-      'スピードを重視する',
-      '多様性を尊重する',
-    ],
-  },
-};
-```
+// セキュリティイベントの重要度
+export type SecuritySeverity = 'info' | 'warning' | 'critical';
 
-### 2.2 Supabase 型の更新
+// セキュリティイベントの種類
+export type SecurityEventType =
+  | 'login_success'
+  | 'login_failed'
+  | 'password_reset'
+  | 'account_locked'
+  | 'suspicious_activity'
+  | 'permission_denied';
 
-```bash
-supabase gen types typescript --local > lib/supabase/database.types.ts
-```
+// セキュリティイベント
+export interface SecurityEvent {
+  id: string;
+  eventType: SecurityEventType;
+  severity: SecuritySeverity;
+  userId: string | null;
+  userEmail?: string;
+  ipAddress: string | null;
+  userAgent: string | null;
+  details: Record<string, unknown>;
+  createdAt: string;
+}
 
-生成後、`lib/types/database.ts` にコピー：
+// ユーザー管理用
+export interface ManagedUser {
+  id: string;
+  email: string;
+  fullName: string | null;
+  isSuperAdmin: boolean;
+  isActive: boolean;
+  createdAt: string;
+  lastSignIn: string | null;
+  workspaceCount: number;
+}
 
-```typescript
-// lib/types/database.ts の末尾に追加
-
-// MVV convenience types
-export type MVVRow = Database['public']['Tables']['mvv']['Row'];
-export type MVVInsert = Database['public']['Tables']['mvv']['Insert'];
-export type MVVUpdate = Database['public']['Tables']['mvv']['Update'];
+// ユーザー操作
+export type UserAction = 'activate' | 'deactivate' | 'delete' | 'grant_sa' | 'revoke_sa';
 ```
 
 ### 確認ポイント
 
-- [ ] `lib/types/mvv.ts` が作成された
-- [ ] MVV, MVVCreate, MVVUpdate 型が定義されている
-- [ ] MVV_SECTION_INFO が定義されている
+- [ ] `lib/types/super-admin.ts` が作成された
+- [ ] 全ての型が正しく定義されている
 
 ---
 
 ## Step 3: API Routes 作成
 
-### 3.1 MVV 取得・作成 API
+### 3.1 SA 権限チェックヘルパー
 
-**ファイル:** `app/api/mvv/route.ts`
+#### ファイル: `lib/supabase/check-super-admin.ts`
 
 ```typescript
 /**
- * app/api/mvv/route.ts
+ * lib/supabase/check-super-admin.ts
  *
- * GET /api/mvv?brandId=xxx - MVV 取得
- * POST /api/mvv - MVV 作成
+ * Super Admin 権限チェック
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { z } from 'zod';
+import { createClient, createServiceClient } from './server';
 
-const createMVVSchema = z.object({
-  brand_id: z.string().uuid('有効なブランドIDを指定してください'),
-  mission: z.string().nullish(),
-  vision: z.string().nullish(),
-  values: z.array(z.string()).optional().default([]),
-});
-
-// GET: MVV 取得
-export async function GET(request: NextRequest) {
+export async function checkSuperAdmin(): Promise<{
+  isSuperAdmin: boolean;
+  userId: string | null;
+  error: string | null;
+}> {
   try {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return { isSuperAdmin: false, userId: null, error: 'Unauthorized' };
     }
 
-    const { searchParams } = new URL(request.url);
-    const brandId = searchParams.get('brandId');
-
-    if (!brandId) {
-      return NextResponse.json({ error: 'brandId is required' }, { status: 400 });
-    }
-
-    // ブランド所有者確認
-    const { data: brand } = await supabase
-      .from('brands')
-      .select('id')
-      .eq('id', brandId)
-      .eq('user_id', user.id)
+    const serviceClient = createServiceClient();
+    const { data: profile } = await serviceClient
+      .from('profiles')
+      .select('is_super_admin')
+      .eq('id', user.id)
       .single();
 
-    if (!brand) {
-      return NextResponse.json({ error: 'Brand not found' }, { status: 404 });
+    if (!profile?.is_super_admin) {
+      return { isSuperAdmin: false, userId: user.id, error: 'Forbidden: Super Admin only' };
     }
 
-    // MVV 取得
-    const { data: mvv, error } = await supabase
-      .from('mvv')
-      .select('*')
-      .eq('brand_id', brandId)
-      .eq('user_id', user.id)
-      .single();
-
-    if (error && error.code !== 'PGRST116') {
-      console.error('MVV fetch error:', error);
-      return NextResponse.json({ error: 'Failed to fetch MVV' }, { status: 500 });
-    }
-
-    return NextResponse.json(mvv || null);
-  } catch (error) {
-    console.error('MVV GET error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return { isSuperAdmin: true, userId: user.id, error: null };
+  } catch {
+    return { isSuperAdmin: false, userId: null, error: 'Internal error' };
   }
 }
+```
 
-// POST: MVV 作成
-export async function POST(request: NextRequest) {
+### 3.2 システム統計 API
+
+#### ファイル: `app/api/super-admin/stats/route.ts`
+
+```typescript
+/**
+ * app/api/super-admin/stats/route.ts
+ *
+ * GET /api/super-admin/stats - システム統計取得
+ */
+
+import { NextResponse } from 'next/server';
+import { createServiceClient } from '@/lib/supabase/server';
+import { checkSuperAdmin } from '@/lib/supabase/check-super-admin';
+import type { SystemStats } from '@/lib/types/super-admin';
+
+export async function GET() {
   try {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { isSuperAdmin, error } = await checkSuperAdmin();
+    if (!isSuperAdmin) {
+      return NextResponse.json({ error }, { status: error === 'Unauthorized' ? 401 : 403 });
     }
 
-    const body = await request.json();
-    const result = createMVVSchema.safeParse(body);
+    const serviceClient = createServiceClient();
 
-    if (!result.success) {
-      return NextResponse.json(
-        { error: 'Invalid input', issues: result.error.issues },
-        { status: 400 }
-      );
-    }
+    // 総ユーザー数
+    const { count: totalUsers } = await serviceClient
+      .from('profiles')
+      .select('*', { count: 'exact', head: true });
 
-    // ブランド所有者確認
-    const { data: brand } = await supabase
-      .from('brands')
-      .select('id')
-      .eq('id', result.data.brand_id)
-      .eq('user_id', user.id)
-      .single();
+    // 総ワークスペース数
+    const { count: totalWorkspaces } = await serviceClient
+      .from('workspaces')
+      .select('*', { count: 'exact', head: true });
 
-    if (!brand) {
-      return NextResponse.json({ error: 'Brand not found' }, { status: 404 });
-    }
+    // 保留中の招待数
+    const { count: pendingInvitations } = await serviceClient
+      .from('invitations')
+      .select('*', { count: 'exact', head: true })
+      .gt('expires_at', new Date().toISOString());
 
-    // 既存MVV確認
-    const { data: existingMVV } = await supabase
-      .from('mvv')
-      .select('id')
-      .eq('brand_id', result.data.brand_id)
-      .single();
+    // 今日のセキュリティイベント数
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const { count: securityEventsToday } = await serviceClient
+      .from('security_events')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', today.toISOString());
 
-    if (existingMVV) {
-      return NextResponse.json(
-        { error: 'MVV already exists for this brand' },
-        { status: 409 }
-      );
-    }
+    // 今日アクティブなユーザー数（簡易: 今日ログインしたユーザー）
+    const { count: activeUsersToday } = await serviceClient
+      .from('profiles')
+      .select('*', { count: 'exact', head: true })
+      .gte('updated_at', today.toISOString());
 
-    // MVV 作成
-    const { data: mvv, error: createError } = await supabase
-      .from('mvv')
-      .insert({
-        brand_id: result.data.brand_id,
-        user_id: user.id,
-        mission: result.data.mission || null,
-        vision: result.data.vision || null,
-        values: result.data.values || [],
-      })
-      .select()
-      .single();
+    const stats: SystemStats = {
+      totalUsers: totalUsers || 0,
+      activeUsersToday: activeUsersToday || 0,
+      totalWorkspaces: totalWorkspaces || 0,
+      pendingInvitations: pendingInvitations || 0,
+      securityEventsToday: securityEventsToday || 0,
+    };
 
-    if (createError) {
-      console.error('MVV create error:', createError);
-      return NextResponse.json({ error: 'Failed to create MVV' }, { status: 500 });
-    }
-
-    return NextResponse.json(mvv, { status: 201 });
+    return NextResponse.json(stats);
   } catch (error) {
-    console.error('MVV POST error:', error);
+    console.error('Super admin stats error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 ```
 
-### 3.2 MVV 更新・削除 API
+### 3.3 テナント一覧 API
 
-**ファイル:** `app/api/mvv/[mvvId]/route.ts`
+#### ファイル: `app/api/super-admin/tenants/route.ts`
 
 ```typescript
 /**
- * app/api/mvv/[mvvId]/route.ts
+ * app/api/super-admin/tenants/route.ts
  *
- * GET /api/mvv/:mvvId - MVV 詳細取得
- * PATCH /api/mvv/:mvvId - MVV 更新
- * DELETE /api/mvv/:mvvId - MVV 削除
+ * GET /api/super-admin/tenants - 全テナント（ワークスペース）一覧
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { z } from 'zod';
+import { createServiceClient } from '@/lib/supabase/server';
+import { checkSuperAdmin } from '@/lib/supabase/check-super-admin';
+import type { TenantSummary } from '@/lib/types/super-admin';
 
-const updateMVVSchema = z.object({
-  mission: z.string().nullish(),
-  vision: z.string().nullish(),
-  values: z.array(z.string()).optional(),
-});
-
-// GET: MVV 詳細取得
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ mvvId: string }> }
-) {
+export async function GET(request: NextRequest) {
   try {
-    const { mvvId } = await params;
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { isSuperAdmin, error } = await checkSuperAdmin();
+    if (!isSuperAdmin) {
+      return NextResponse.json({ error }, { status: error === 'Unauthorized' ? 401 : 403 });
     }
 
-    const { data: mvv, error } = await supabase
-      .from('mvv')
+    const { searchParams } = new URL(request.url);
+    const search = searchParams.get('search') || '';
+    const limit = parseInt(searchParams.get('limit') || '50');
+    const offset = parseInt(searchParams.get('offset') || '0');
+
+    const serviceClient = createServiceClient();
+
+    // ワークスペース取得
+    let query = serviceClient
+      .from('workspaces')
       .select('*')
-      .eq('id', mvvId)
-      .eq('user_id', user.id)
-      .single();
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
 
-    if (error || !mvv) {
-      return NextResponse.json({ error: 'MVV not found' }, { status: 404 });
+    if (search) {
+      query = query.or(`name.ilike.%${search}%,slug.ilike.%${search}%`);
     }
 
-    return NextResponse.json(mvv);
+    const { data: workspaces, error: wsError } = await query;
+
+    if (wsError) {
+      console.error('Workspaces fetch error:', wsError);
+      return NextResponse.json({ error: 'Failed to fetch workspaces' }, { status: 500 });
+    }
+
+    // 各ワークスペースの詳細情報を取得
+    const tenants: TenantSummary[] = await Promise.all(
+      (workspaces || []).map(async (ws) => {
+        // メンバー数
+        const { count: memberCount } = await serviceClient
+          .from('workspace_members')
+          .select('*', { count: 'exact', head: true })
+          .eq('workspace_id', ws.id);
+
+        // オーナー情報
+        const { data: owner } = await serviceClient
+          .from('workspace_members')
+          .select('user_id')
+          .eq('workspace_id', ws.id)
+          .eq('role', 'owner')
+          .single();
+
+        let ownerEmail = 'Unknown';
+        if (owner) {
+          const { data: profile } = await serviceClient
+            .from('profiles')
+            .select('email')
+            .eq('id', owner.user_id)
+            .single();
+          ownerEmail = profile?.email || 'Unknown';
+        }
+
+        // 最終アクティビティ（監査ログから）
+        const { data: lastActivity } = await serviceClient
+          .from('audit_logs')
+          .select('created_at')
+          .eq('workspace_id', ws.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        return {
+          id: ws.id,
+          name: ws.name,
+          slug: ws.slug,
+          ownerEmail,
+          memberCount: memberCount || 0,
+          createdAt: ws.created_at,
+          lastActivityAt: lastActivity?.created_at || null,
+        };
+      })
+    );
+
+    return NextResponse.json({ tenants, total: tenants.length });
   } catch (error) {
-    console.error('MVV GET error:', error);
+    console.error('Super admin tenants error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+```
 
-// PATCH: MVV 更新
+### 3.4 ユーザー管理 API
+
+#### ファイル: `app/api/super-admin/users/route.ts`
+
+```typescript
+/**
+ * app/api/super-admin/users/route.ts
+ *
+ * GET /api/super-admin/users - 全ユーザー一覧
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { createServiceClient } from '@/lib/supabase/server';
+import { checkSuperAdmin } from '@/lib/supabase/check-super-admin';
+import type { ManagedUser } from '@/lib/types/super-admin';
+
+export async function GET(request: NextRequest) {
+  try {
+    const { isSuperAdmin, error } = await checkSuperAdmin();
+    if (!isSuperAdmin) {
+      return NextResponse.json({ error }, { status: error === 'Unauthorized' ? 401 : 403 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const search = searchParams.get('search') || '';
+    const limit = parseInt(searchParams.get('limit') || '50');
+    const offset = parseInt(searchParams.get('offset') || '0');
+
+    const serviceClient = createServiceClient();
+
+    // プロフィール取得
+    let query = serviceClient
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (search) {
+      query = query.or(`email.ilike.%${search}%,full_name.ilike.%${search}%`);
+    }
+
+    const { data: profiles, error: profileError } = await query;
+
+    if (profileError) {
+      console.error('Profiles fetch error:', profileError);
+      return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
+    }
+
+    // 各ユーザーのワークスペース数を取得
+    const users: ManagedUser[] = await Promise.all(
+      (profiles || []).map(async (profile) => {
+        const { count: workspaceCount } = await serviceClient
+          .from('workspace_members')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', profile.id);
+
+        return {
+          id: profile.id,
+          email: profile.email || '',
+          fullName: profile.full_name,
+          isSuperAdmin: profile.is_super_admin || false,
+          isActive: profile.is_active !== false, // デフォルト true
+          createdAt: profile.created_at,
+          lastSignIn: profile.updated_at,
+          workspaceCount: workspaceCount || 0,
+        };
+      })
+    );
+
+    return NextResponse.json({ users, total: users.length });
+  } catch (error) {
+    console.error('Super admin users error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+```
+
+### 3.5 ユーザー操作 API
+
+#### ファイル: `app/api/super-admin/users/[userId]/route.ts`
+
+```typescript
+/**
+ * app/api/super-admin/users/[userId]/route.ts
+ *
+ * PATCH /api/super-admin/users/:userId - ユーザー状態更新
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { createServiceClient } from '@/lib/supabase/server';
+import { checkSuperAdmin } from '@/lib/supabase/check-super-admin';
+import type { UserAction } from '@/lib/types/super-admin';
+
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ mvvId: string }> }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
-    const { mvvId } = await params;
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { userId } = await params;
+    const { isSuperAdmin, userId: adminId, error } = await checkSuperAdmin();
 
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!isSuperAdmin) {
+      return NextResponse.json({ error }, { status: error === 'Unauthorized' ? 401 : 403 });
     }
 
     const body = await request.json();
-    const result = updateMVVSchema.safeParse(body);
+    const action: UserAction = body.action;
 
-    if (!result.success) {
-      return NextResponse.json(
-        { error: 'Invalid input', issues: result.error.issues },
-        { status: 400 }
-      );
+    if (!['activate', 'deactivate', 'grant_sa', 'revoke_sa'].includes(action)) {
+      return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }
 
-    const { data: mvv, error: updateError } = await supabase
-      .from('mvv')
-      .update({
-        ...result.data,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', mvvId)
-      .eq('user_id', user.id)
+    // 自分自身の SA 権限は削除不可
+    if (action === 'revoke_sa' && userId === adminId) {
+      return NextResponse.json({ error: 'Cannot revoke your own super admin' }, { status: 400 });
+    }
+
+    const serviceClient = createServiceClient();
+
+    // 更新内容を決定
+    const updates: Record<string, boolean> = {};
+    switch (action) {
+      case 'activate':
+        updates.is_active = true;
+        break;
+      case 'deactivate':
+        updates.is_active = false;
+        break;
+      case 'grant_sa':
+        updates.is_super_admin = true;
+        break;
+      case 'revoke_sa':
+        updates.is_super_admin = false;
+        break;
+    }
+
+    const { data: updated, error: updateError } = await serviceClient
+      .from('profiles')
+      .update(updates)
+      .eq('id', userId)
       .select()
       .single();
 
     if (updateError) {
-      console.error('MVV update error:', updateError);
-      return NextResponse.json({ error: 'Failed to update MVV' }, { status: 500 });
+      console.error('User update error:', updateError);
+      return NextResponse.json({ error: 'Failed to update user' }, { status: 500 });
     }
 
-    return NextResponse.json(mvv);
+    // セキュリティイベント記録
+    await serviceClient.from('security_events').insert({
+      event_type: `user_${action}`,
+      severity: action.includes('sa') ? 'warning' : 'info',
+      user_id: userId,
+      details: {
+        action,
+        performed_by: adminId,
+      },
+    });
+
+    return NextResponse.json(updated);
   } catch (error) {
-    console.error('MVV PATCH error:', error);
+    console.error('Super admin user update error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+```
 
-// DELETE: MVV 削除
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ mvvId: string }> }
-) {
+### 3.6 セキュリティイベント API
+
+#### ファイル: `app/api/super-admin/security-events/route.ts`
+
+```typescript
+/**
+ * app/api/super-admin/security-events/route.ts
+ *
+ * GET /api/super-admin/security-events - セキュリティイベント一覧
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { createServiceClient } from '@/lib/supabase/server';
+import { checkSuperAdmin } from '@/lib/supabase/check-super-admin';
+
+export async function GET(request: NextRequest) {
   try {
-    const { mvvId } = await params;
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { isSuperAdmin, error } = await checkSuperAdmin();
+    if (!isSuperAdmin) {
+      return NextResponse.json({ error }, { status: error === 'Unauthorized' ? 401 : 403 });
     }
 
-    const { error: deleteError } = await supabase
-      .from('mvv')
-      .delete()
-      .eq('id', mvvId)
-      .eq('user_id', user.id);
+    const { searchParams } = new URL(request.url);
+    const severity = searchParams.get('severity');
+    const limit = parseInt(searchParams.get('limit') || '100');
+    const offset = parseInt(searchParams.get('offset') || '0');
 
-    if (deleteError) {
-      console.error('MVV delete error:', deleteError);
-      return NextResponse.json({ error: 'Failed to delete MVV' }, { status: 500 });
+    const serviceClient = createServiceClient();
+
+    let query = serviceClient
+      .from('security_events')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (severity) {
+      query = query.eq('severity', severity);
     }
 
-    return NextResponse.json({ success: true });
+    const { data: events, error: fetchError } = await query;
+
+    if (fetchError) {
+      console.error('Security events fetch error:', fetchError);
+      return NextResponse.json({ error: 'Failed to fetch events' }, { status: 500 });
+    }
+
+    // ユーザー情報を付加
+    const enrichedEvents = await Promise.all(
+      (events || []).map(async (event) => {
+        if (event.user_id) {
+          const { data: profile } = await serviceClient
+            .from('profiles')
+            .select('email')
+            .eq('id', event.user_id)
+            .single();
+          return { ...event, userEmail: profile?.email };
+        }
+        return event;
+      })
+    );
+
+    return NextResponse.json({ events: enrichedEvents });
   } catch (error) {
-    console.error('MVV DELETE error:', error);
+    console.error('Super admin security events error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -526,840 +688,565 @@ export async function DELETE(
 
 ### 確認ポイント
 
-- [ ] `app/api/mvv/route.ts` が作成された
-- [ ] `app/api/mvv/[mvvId]/route.ts` が作成された
-- [ ] GET, POST, PATCH, DELETE が実装されている
+- [ ] `lib/supabase/check-super-admin.ts` が作成された
+- [ ] `app/api/super-admin/stats/route.ts` が作成された
+- [ ] `app/api/super-admin/tenants/route.ts` が作成された
+- [ ] `app/api/super-admin/users/route.ts` が作成された
+- [ ] `app/api/super-admin/users/[userId]/route.ts` が作成された
+- [ ] `app/api/super-admin/security-events/route.ts` が作成された
 
 ---
 
 ## Step 4: React Hooks 作成
 
-### 4.1 MVV Hook
-
-**ファイル:** `lib/hooks/useMVV.ts`
+### ファイル: `lib/hooks/useSuperAdmin.ts`
 
 ```typescript
 /**
- * lib/hooks/useMVV.ts
+ * lib/hooks/useSuperAdmin.ts
  *
- * MVV 管理用カスタムフック
+ * Super Admin 機能用カスタムフック
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import type { MVV, MVVCreate, MVVUpdate } from '@/lib/types/mvv';
+import type {
+  SystemStats,
+  TenantSummary,
+  ManagedUser,
+  SecurityEvent,
+  UserAction,
+} from '@/lib/types/super-admin';
 
-export function useMVV(brandId: string | null) {
-  const [mvv, setMVV] = useState<MVV | null>(null);
+// システム統計
+export function useSystemStats() {
+  const [stats, setStats] = useState<SystemStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
 
-  const fetchMVV = useCallback(async () => {
-    if (!brandId) {
-      setMVV(null);
-      return;
-    }
-
+  const fetchStats = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-
-      const res = await fetch(`/api/mvv?brandId=${brandId}`);
-      if (!res.ok && res.status !== 404) {
-        throw new Error('Failed to fetch MVV');
-      }
-
+      const res = await fetch('/api/super-admin/stats');
+      if (!res.ok) throw new Error('Failed to fetch stats');
       const data = await res.json();
-      setMVV(data);
+      setStats(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
-  }, [brandId]);
+  }, []);
 
   useEffect(() => {
-    fetchMVV();
-  }, [fetchMVV]);
+    fetchStats();
+  }, [fetchStats]);
 
-  // MVV 作成
-  const createMVV = async (input: MVVCreate): Promise<MVV | null> => {
+  return { stats, loading, error, refetch: fetchStats };
+}
+
+// テナント管理
+export function useTenants() {
+  const [tenants, setTenants] = useState<TenantSummary[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+
+  const fetchTenants = useCallback(async (searchQuery = '') => {
     try {
-      setSaving(true);
+      setLoading(true);
       setError(null);
-
-      const res = await fetch('/api/mvv', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input),
-      });
-
-      if (!res.ok) throw new Error('Failed to create MVV');
-
-      const created = await res.json();
-      setMVV(created);
-      return created;
+      const params = new URLSearchParams();
+      if (searchQuery) params.set('search', searchQuery);
+      const res = await fetch(`/api/super-admin/tenants?${params}`);
+      if (!res.ok) throw new Error('Failed to fetch tenants');
+      const data = await res.json();
+      setTenants(data.tenants);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
-      return null;
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
-  };
+  }, []);
 
-  // MVV 更新
-  const updateMVV = async (input: MVVUpdate): Promise<boolean> => {
-    if (!mvv) return false;
+  useEffect(() => {
+    fetchTenants(search);
+  }, [fetchTenants, search]);
 
+  return { tenants, loading, error, search, setSearch, refetch: () => fetchTenants(search) };
+}
+
+// ユーザー管理
+export function useManagedUsers() {
+  const [users, setUsers] = useState<ManagedUser[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+
+  const fetchUsers = useCallback(async (searchQuery = '') => {
     try {
-      setSaving(true);
+      setLoading(true);
       setError(null);
+      const params = new URLSearchParams();
+      if (searchQuery) params.set('search', searchQuery);
+      const res = await fetch(`/api/super-admin/users?${params}`);
+      if (!res.ok) throw new Error('Failed to fetch users');
+      const data = await res.json();
+      setUsers(data.users);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-      const res = await fetch(`/api/mvv/${mvv.id}`, {
+  useEffect(() => {
+    fetchUsers(search);
+  }, [fetchUsers, search]);
+
+  const performAction = async (userId: string, action: UserAction): Promise<boolean> => {
+    try {
+      const res = await fetch(`/api/super-admin/users/${userId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input),
+        body: JSON.stringify({ action }),
       });
-
-      if (!res.ok) throw new Error('Failed to update MVV');
-
-      const updated = await res.json();
-      setMVV(updated);
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to perform action');
+      }
+      await fetchUsers(search);
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
       return false;
-    } finally {
-      setSaving(false);
     }
-  };
-
-  // MVV を作成または更新（upsert的な動作）
-  const saveMVV = async (input: MVVUpdate): Promise<boolean> => {
-    if (!brandId) return false;
-
-    if (mvv) {
-      return await updateMVV(input);
-    } else {
-      const created = await createMVV({ ...input, brand_id: brandId });
-      return !!created;
-    }
-  };
-
-  // Value 追加
-  const addValue = async (value: string): Promise<boolean> => {
-    if (!value.trim()) return false;
-    const newValues = [...(mvv?.values || []), value.trim()];
-    return await saveMVV({ values: newValues });
-  };
-
-  // Value 削除
-  const removeValue = async (index: number): Promise<boolean> => {
-    const newValues = (mvv?.values || []).filter((_, i) => i !== index);
-    return await saveMVV({ values: newValues });
-  };
-
-  // Value 更新
-  const updateValue = async (index: number, value: string): Promise<boolean> => {
-    const newValues = [...(mvv?.values || [])];
-    newValues[index] = value;
-    return await saveMVV({ values: newValues });
   };
 
   return {
-    mvv,
+    users,
     loading,
     error,
-    saving,
-    refetch: fetchMVV,
-    createMVV,
-    updateMVV,
-    saveMVV,
-    addValue,
-    removeValue,
-    updateValue,
+    search,
+    setSearch,
+    performAction,
+    refetch: () => fetchUsers(search),
   };
+}
+
+// セキュリティイベント
+export function useSecurityEvents() {
+  const [events, setEvents] = useState<SecurityEvent[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [severity, setSeverity] = useState<string | null>(null);
+
+  const fetchEvents = useCallback(async (severityFilter: string | null = null) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const params = new URLSearchParams();
+      if (severityFilter) params.set('severity', severityFilter);
+      const res = await fetch(`/api/super-admin/security-events?${params}`);
+      if (!res.ok) throw new Error('Failed to fetch events');
+      const data = await res.json();
+      setEvents(data.events);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchEvents(severity);
+  }, [fetchEvents, severity]);
+
+  return { events, loading, error, severity, setSeverity, refetch: () => fetchEvents(severity) };
 }
 ```
 
 ### 確認ポイント
 
-- [ ] `lib/hooks/useMVV.ts` が作成された
-- [ ] saveMVV で upsert 動作が実装されている
+- [ ] `lib/hooks/useSuperAdmin.ts` が作成された
+- [ ] 4つのフックが定義されている
 
 ---
 
 ## Step 5: UI コンポーネント作成
 
-### 5.1 折り畳みコンポーネント
+### 5.1 統計カード
 
-**ファイル:** `components/mvv/Collapsible.tsx`
+#### ファイル: `components/super-admin/StatCard.tsx`
 
 ```typescript
 'use client';
 
 /**
- * components/mvv/Collapsible.tsx
+ * components/super-admin/StatCard.tsx
  *
- * 折り畳み（アコーディオン）コンポーネント
+ * 統計表示カード
  */
 
-import { useState } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
-interface CollapsibleProps {
+interface StatCardProps {
   title: string;
+  value: number | string;
+  icon: LucideIcon;
+  color?: string;
   subtitle?: string;
-  defaultOpen?: boolean;
-  children: React.ReactNode;
-  className?: string;
 }
 
-export function Collapsible({
-  title,
-  subtitle,
-  defaultOpen = false,
-  children,
-  className = '',
-}: CollapsibleProps) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
-
+export function StatCard({ title, value, icon: Icon, color = 'var(--ws-secondary)', subtitle }: StatCardProps) {
   return (
-    <div className={`collapsible ${isOpen ? 'open' : ''} ${className}`}>
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="collapsible-header"
-        aria-expanded={isOpen}
-      >
-        <div className="collapsible-icon">
-          {isOpen ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
-        </div>
-        <div className="collapsible-title">
-          <span className="title-text">{title}</span>
-          {subtitle && <span className="subtitle-text">{subtitle}</span>}
-        </div>
-      </button>
-      {isOpen && (
-        <div className="collapsible-content">
-          {children}
-        </div>
-      )}
+    <div className="stat-card">
+      <div className="stat-icon" style={{ backgroundColor: `${color}20`, color }}>
+        <Icon size={24} />
+      </div>
+      <div className="stat-content">
+        <span className="stat-value">{value}</span>
+        <span className="stat-title">{title}</span>
+        {subtitle && <span className="stat-subtitle">{subtitle}</span>}
+      </div>
     </div>
   );
 }
 ```
 
-### 5.2 MVV セクションコンポーネント
+### 5.2 テナント一覧
 
-**ファイル:** `components/mvv/MVVSection.tsx`
+#### ファイル: `components/super-admin/TenantsTable.tsx`
 
 ```typescript
 'use client';
 
 /**
- * components/mvv/MVVSection.tsx
+ * components/super-admin/TenantsTable.tsx
  *
- * MVV（Mission/Vision/Value）編集セクション
+ * テナント（ワークスペース）一覧テーブル
  */
 
-import { useState } from 'react';
-import { Edit, Save, X, Plus, Trash2, Loader2, Target, Eye, Heart } from 'lucide-react';
-import type { MVV, MVVUpdate } from '@/lib/types/mvv';
-import { MVV_SECTION_INFO } from '@/lib/types/mvv';
+import { Search, Users, Calendar, Activity } from 'lucide-react';
+import type { TenantSummary } from '@/lib/types/super-admin';
 
-interface MVVSectionProps {
-  mvv: MVV | null;
-  saving: boolean;
-  onSave: (data: MVVUpdate) => Promise<boolean>;
-  onAddValue: (value: string) => Promise<boolean>;
-  onRemoveValue: (index: number) => Promise<boolean>;
-  onUpdateValue: (index: number, value: string) => Promise<boolean>;
+interface TenantsTableProps {
+  tenants: TenantSummary[];
+  loading: boolean;
+  search: string;
+  onSearchChange: (value: string) => void;
 }
 
-export function MVVSection({
-  mvv,
-  saving,
-  onSave,
-  onAddValue,
-  onRemoveValue,
-  onUpdateValue,
-}: MVVSectionProps) {
-  const [editingField, setEditingField] = useState<'mission' | 'vision' | null>(null);
-  const [editValue, setEditValue] = useState('');
-  const [newValue, setNewValue] = useState('');
-  const [editingValueIndex, setEditingValueIndex] = useState<number | null>(null);
-  const [editingValueText, setEditingValueText] = useState('');
-
-  const handleEditStart = (field: 'mission' | 'vision') => {
-    setEditingField(field);
-    setEditValue(mvv?.[field] || '');
-  };
-
-  const handleEditSave = async () => {
-    if (!editingField) return;
-    const success = await onSave({ [editingField]: editValue.trim() || null });
-    if (success) {
-      setEditingField(null);
-      setEditValue('');
-    }
-  };
-
-  const handleEditCancel = () => {
-    setEditingField(null);
-    setEditValue('');
-  };
-
-  const handleAddValue = async () => {
-    if (!newValue.trim()) return;
-    const success = await onAddValue(newValue.trim());
-    if (success) {
-      setNewValue('');
-    }
-  };
-
-  const handleValueEditStart = (index: number) => {
-    setEditingValueIndex(index);
-    setEditingValueText(mvv?.values[index] || '');
-  };
-
-  const handleValueEditSave = async () => {
-    if (editingValueIndex === null) return;
-    const success = await onUpdateValue(editingValueIndex, editingValueText.trim());
-    if (success) {
-      setEditingValueIndex(null);
-      setEditingValueText('');
-    }
-  };
-
-  const sectionIcons = {
-    mission: Target,
-    vision: Eye,
-    values: Heart,
-  };
-
+export function TenantsTable({ tenants, loading, search, onSearchChange }: TenantsTableProps) {
   return (
-    <div className="mvv-section">
-      {/* Mission */}
-      <div className="mvv-item">
-        <div className="mvv-item-header">
-          <div className="mvv-item-icon mission">
-            <Target size={20} />
-          </div>
-          <div className="mvv-item-label">
-            <h3>{MVV_SECTION_INFO.mission.label}</h3>
-            <span className="label-ja">{MVV_SECTION_INFO.mission.labelJa}</span>
-          </div>
-          {editingField !== 'mission' && (
-            <button
-              onClick={() => handleEditStart('mission')}
-              className="btn-icon"
-              disabled={saving}
-            >
-              <Edit size={16} />
-            </button>
-          )}
-        </div>
-        <p className="mvv-item-description">{MVV_SECTION_INFO.mission.description}</p>
-
-        {editingField === 'mission' ? (
-          <div className="mvv-edit-form">
-            <textarea
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
-              placeholder={MVV_SECTION_INFO.mission.placeholder}
-              className="form-textarea"
-              rows={3}
-              autoFocus
-            />
-            <div className="edit-actions">
-              <button onClick={handleEditCancel} className="btn btn-secondary" disabled={saving}>
-                <X size={14} /> キャンセル
-              </button>
-              <button onClick={handleEditSave} className="btn btn-primary" disabled={saving}>
-                {saving ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />}
-                保存
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="mvv-item-content">
-            {mvv?.mission ? (
-              <p className="content-text">{mvv.mission}</p>
-            ) : (
-              <p className="content-empty">未設定</p>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Vision */}
-      <div className="mvv-item">
-        <div className="mvv-item-header">
-          <div className="mvv-item-icon vision">
-            <Eye size={20} />
-          </div>
-          <div className="mvv-item-label">
-            <h3>{MVV_SECTION_INFO.vision.label}</h3>
-            <span className="label-ja">{MVV_SECTION_INFO.vision.labelJa}</span>
-          </div>
-          {editingField !== 'vision' && (
-            <button
-              onClick={() => handleEditStart('vision')}
-              className="btn-icon"
-              disabled={saving}
-            >
-              <Edit size={16} />
-            </button>
-          )}
-        </div>
-        <p className="mvv-item-description">{MVV_SECTION_INFO.vision.description}</p>
-
-        {editingField === 'vision' ? (
-          <div className="mvv-edit-form">
-            <textarea
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
-              placeholder={MVV_SECTION_INFO.vision.placeholder}
-              className="form-textarea"
-              rows={3}
-              autoFocus
-            />
-            <div className="edit-actions">
-              <button onClick={handleEditCancel} className="btn btn-secondary" disabled={saving}>
-                <X size={14} /> キャンセル
-              </button>
-              <button onClick={handleEditSave} className="btn btn-primary" disabled={saving}>
-                {saving ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />}
-                保存
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="mvv-item-content">
-            {mvv?.vision ? (
-              <p className="content-text">{mvv.vision}</p>
-            ) : (
-              <p className="content-empty">未設定</p>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Values */}
-      <div className="mvv-item values">
-        <div className="mvv-item-header">
-          <div className="mvv-item-icon values">
-            <Heart size={20} />
-          </div>
-          <div className="mvv-item-label">
-            <h3>{MVV_SECTION_INFO.values.label}</h3>
-            <span className="label-ja">{MVV_SECTION_INFO.values.labelJa}</span>
-          </div>
-        </div>
-        <p className="mvv-item-description">{MVV_SECTION_INFO.values.description}</p>
-
-        <div className="values-list">
-          {(mvv?.values || []).map((value, index) => (
-            <div key={index} className="value-item">
-              {editingValueIndex === index ? (
-                <div className="value-edit">
-                  <input
-                    type="text"
-                    value={editingValueText}
-                    onChange={(e) => setEditingValueText(e.target.value)}
-                    className="form-input"
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleValueEditSave();
-                      if (e.key === 'Escape') {
-                        setEditingValueIndex(null);
-                        setEditingValueText('');
-                      }
-                    }}
-                  />
-                  <button
-                    onClick={handleValueEditSave}
-                    className="btn-icon"
-                    disabled={saving}
-                  >
-                    <Save size={14} />
-                  </button>
-                  <button
-                    onClick={() => {
-                      setEditingValueIndex(null);
-                      setEditingValueText('');
-                    }}
-                    className="btn-icon"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <span className="value-text">{value}</span>
-                  <div className="value-actions">
-                    <button
-                      onClick={() => handleValueEditStart(index)}
-                      className="btn-icon"
-                      disabled={saving}
-                    >
-                      <Edit size={14} />
-                    </button>
-                    <button
-                      onClick={() => onRemoveValue(index)}
-                      className="btn-icon btn-danger"
-                      disabled={saving}
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          ))}
-        </div>
-
-        <div className="value-add">
+    <div className="sa-table-container">
+      <div className="sa-table-header">
+        <h3>ワークスペース一覧</h3>
+        <div className="sa-search">
+          <Search size={16} />
           <input
             type="text"
-            value={newValue}
-            onChange={(e) => setNewValue(e.target.value)}
-            placeholder={MVV_SECTION_INFO.values.placeholder}
-            className="form-input"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleAddValue();
-            }}
+            placeholder="検索..."
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
           />
-          <button
-            onClick={handleAddValue}
-            className="btn btn-outline"
-            disabled={saving || !newValue.trim()}
-          >
-            <Plus size={14} /> 追加
-          </button>
-        </div>
-
-        {/* 例 */}
-        <div className="values-examples">
-          <span className="examples-label">例:</span>
-          {MVV_SECTION_INFO.values.examples.map((example, i) => (
-            <button
-              key={i}
-              onClick={() => setNewValue(example)}
-              className="example-chip"
-            >
-              {example}
-            </button>
-          ))}
         </div>
       </div>
-    </div>
-  );
-}
-```
 
-### 5.3 統合ビューコンポーネント
-
-**ファイル:** `components/mvv/UnifiedView.tsx`
-
-```typescript
-'use client';
-
-/**
- * components/mvv/UnifiedView.tsx
- *
- * Brand + Lean Canvas + MVV 統合ビュー
- */
-
-import Link from 'next/link';
-import { Palette, LayoutGrid, Target, Edit } from 'lucide-react';
-import type { Brand } from '@/lib/types/brand';
-import type { LeanCanvas, LeanCanvasBlock } from '@/lib/types/lean-canvas';
-import type { MVV } from '@/lib/types/mvv';
-import { Collapsible } from './Collapsible';
-import { LEAN_CANVAS_BLOCK_INFO } from '@/lib/types/lean-canvas';
-
-interface UnifiedViewProps {
-  brand: Brand;
-  leanCanvas: (LeanCanvas & { blocks: LeanCanvasBlock[] }) | null;
-  mvv: MVV | null;
-}
-
-export function UnifiedView({ brand, leanCanvas, mvv }: UnifiedViewProps) {
-  return (
-    <div className="unified-view">
-      {/* ブランド概要 */}
-      <Collapsible title="ブランド概要" subtitle={brand.name} defaultOpen>
-        <div className="unified-brand">
-          <div className="brand-header">
-            {brand.logo_url && (
-              <img src={brand.logo_url} alt={brand.name} className="brand-logo" />
-            )}
-            <div className="brand-info">
-              <h3>{brand.name}</h3>
-              {brand.tagline && <p className="tagline">{brand.tagline}</p>}
-            </div>
-            <Link href="/brand" className="edit-link">
-              <Edit size={14} />
-            </Link>
-          </div>
-          {brand.story && <p className="brand-story">{brand.story}</p>}
-        </div>
-      </Collapsible>
-
-      {/* MVV */}
-      <Collapsible title="MVV" subtitle="Mission / Vision / Values" defaultOpen>
-        <div className="unified-mvv">
-          {mvv ? (
-            <div className="mvv-summary">
-              <div className="mvv-summary-item">
-                <span className="label">Mission</span>
-                <p>{mvv.mission || '未設定'}</p>
-              </div>
-              <div className="mvv-summary-item">
-                <span className="label">Vision</span>
-                <p>{mvv.vision || '未設定'}</p>
-              </div>
-              <div className="mvv-summary-item">
-                <span className="label">Values</span>
-                {mvv.values.length > 0 ? (
-                  <ul className="values-list">
-                    {mvv.values.map((v, i) => (
-                      <li key={i}>{v}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p>未設定</p>
-                )}
-              </div>
-            </div>
-          ) : (
-            <p className="empty-message">MVV が未設定です</p>
-          )}
-        </div>
-      </Collapsible>
-
-      {/* Lean Canvas サマリー */}
-      <Collapsible title="Lean Canvas" subtitle={leanCanvas?.title}>
-        {leanCanvas ? (
-          <div className="unified-canvas">
-            <div className="canvas-summary-grid">
-              {['problem', 'customer-segments', 'unique-value', 'solution'].map(blockType => {
-                const block = leanCanvas.blocks.find(b => b.block_type === blockType);
-                const content = block?.content as { items?: string[] } | undefined;
-                const info = LEAN_CANVAS_BLOCK_INFO[blockType as keyof typeof LEAN_CANVAS_BLOCK_INFO];
-
-                return (
-                  <div key={blockType} className="canvas-summary-item">
-                    <span className="label">{info?.label}</span>
-                    {content?.items && content.items.length > 0 ? (
-                      <ul>
-                        {content.items.slice(0, 2).map((item, i) => (
-                          <li key={i}>{item}</li>
-                        ))}
-                        {content.items.length > 2 && (
-                          <li className="more">+{content.items.length - 2}件</li>
-                        )}
-                      </ul>
-                    ) : (
-                      <p className="empty">未入力</p>
-                    )}
+      {loading ? (
+        <div className="sa-loading">読み込み中...</div>
+      ) : tenants.length === 0 ? (
+        <div className="sa-empty">ワークスペースがありません</div>
+      ) : (
+        <table className="sa-table">
+          <thead>
+            <tr>
+              <th>名前</th>
+              <th>オーナー</th>
+              <th><Users size={14} /> メンバー</th>
+              <th><Calendar size={14} /> 作成日</th>
+              <th><Activity size={14} /> 最終活動</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tenants.map((tenant) => (
+              <tr key={tenant.id}>
+                <td>
+                  <div className="tenant-name">
+                    <strong>{tenant.name}</strong>
+                    <span className="tenant-slug">/{tenant.slug}</span>
                   </div>
-                );
-              })}
-            </div>
-            <Link href={`/lean-canvas/${leanCanvas.id}`} className="view-full-link">
-              全体を見る
-            </Link>
-          </div>
-        ) : (
-          <div className="empty-message">
-            <p>Lean Canvas がありません</p>
-            <Link href="/lean-canvas" className="btn btn-outline">
-              作成する
-            </Link>
-          </div>
-        )}
-      </Collapsible>
+                </td>
+                <td>{tenant.ownerEmail}</td>
+                <td>{tenant.memberCount}</td>
+                <td>{new Date(tenant.createdAt).toLocaleDateString('ja-JP')}</td>
+                <td>
+                  {tenant.lastActivityAt
+                    ? new Date(tenant.lastActivityAt).toLocaleDateString('ja-JP')
+                    : '-'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }
 ```
 
-### 5.4 インデックスファイル
+### 5.3 ユーザー管理テーブル
 
-**ファイル:** `components/mvv/index.ts`
-
-```typescript
-export { Collapsible } from './Collapsible';
-export { MVVSection } from './MVVSection';
-export { UnifiedView } from './UnifiedView';
-```
-
-### 確認ポイント
-
-- [ ] `components/mvv/Collapsible.tsx` が作成された
-- [ ] `components/mvv/MVVSection.tsx` が作成された
-- [ ] `components/mvv/UnifiedView.tsx` が作成された
-- [ ] `components/mvv/index.ts` でエクスポートされている
-
----
-
-## Step 6: MVV ページ作成
-
-### 6.1 MVV 統合ページ
-
-**ファイル:** `app/(app)/mvv/page.tsx`
+#### ファイル: `components/super-admin/UsersTable.tsx`
 
 ```typescript
 'use client';
 
 /**
- * app/(app)/mvv/page.tsx
+ * components/super-admin/UsersTable.tsx
  *
- * MVV 統合ビューページ
+ * ユーザー管理テーブル
  */
 
-import { useState, useEffect } from 'react';
-import { Target, Loader2, ChevronDown } from 'lucide-react';
-import { useBrands } from '@/lib/hooks/useBrand';
-import { useMVV } from '@/lib/hooks/useMVV';
-import { MVVSection, UnifiedView } from '@/components/mvv';
+import { Search, Shield, ShieldOff, UserX, UserCheck, Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import type { ManagedUser, UserAction } from '@/lib/types/super-admin';
 
-export default function MVVPage() {
-  const { brands, isLoading: brandsLoading } = useBrands();
-  const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
-  const [leanCanvas, setLeanCanvas] = useState<any>(null);
-  const [leanCanvasLoading, setLeanCanvasLoading] = useState(false);
+interface UsersTableProps {
+  users: ManagedUser[];
+  loading: boolean;
+  search: string;
+  onSearchChange: (value: string) => void;
+  onAction: (userId: string, action: UserAction) => Promise<boolean>;
+  currentUserId?: string;
+}
 
-  // ブランドが読み込まれたら最初のブランドを選択
-  useEffect(() => {
-    if (!selectedBrandId && brands.length > 0) {
-      setSelectedBrandId(brands[0].id);
-    }
-  }, [brands, selectedBrandId]);
+export function UsersTable({
+  users,
+  loading,
+  search,
+  onSearchChange,
+  onAction,
+  currentUserId,
+}: UsersTableProps) {
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  const selectedBrand = brands.find(b => b.id === selectedBrandId) || null;
-  const { mvv, loading, saving, saveMVV, addValue, removeValue, updateValue } = useMVV(selectedBrandId);
-
-  // Lean Canvas 取得
-  useEffect(() => {
-    if (!selectedBrandId) {
-      setLeanCanvas(null);
-      return;
-    }
-
-    const fetchLeanCanvas = async () => {
-      setLeanCanvasLoading(true);
-      try {
-        const res = await fetch(`/api/lean-canvas?brandId=${selectedBrandId}`);
-        if (res.ok) {
-          const canvases = await res.json();
-          if (canvases.length > 0) {
-            // 最新のキャンバスを取得
-            const latestCanvas = canvases[0];
-            const blocksRes = await fetch(`/api/lean-canvas/${latestCanvas.id}`);
-            if (blocksRes.ok) {
-              const canvasWithBlocks = await blocksRes.json();
-              setLeanCanvas(canvasWithBlocks);
-            }
-          } else {
-            setLeanCanvas(null);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch Lean Canvas:', error);
-      } finally {
-        setLeanCanvasLoading(false);
-      }
+  const handleAction = async (userId: string, action: UserAction) => {
+    const confirmMessages: Record<UserAction, string> = {
+      activate: 'このユーザーを有効化しますか？',
+      deactivate: 'このユーザーを無効化しますか？',
+      delete: 'このユーザーを削除しますか？（この操作は取り消せません）',
+      grant_sa: 'このユーザーにSuper Admin権限を付与しますか？',
+      revoke_sa: 'このユーザーからSuper Admin権限を剥奪しますか？',
     };
 
-    fetchLeanCanvas();
-  }, [selectedBrandId]);
+    if (!confirm(confirmMessages[action])) return;
 
-  if (brandsLoading) {
-    return (
-      <div className="page-loading">
-        <Loader2 className="animate-spin" size={32} />
-        <p>読み込み中...</p>
-      </div>
-    );
-  }
-
-  if (brands.length === 0) {
-    return (
-      <div className="mvv-page">
-        <header className="page-header">
-          <div className="header-content">
-            <Target size={24} />
-            <h1>MVV</h1>
-          </div>
-        </header>
-        <div className="empty-state">
-          <Target size={48} />
-          <h2>ブランドがありません</h2>
-          <p>まず「ブランド」タブでブランドを作成してください</p>
-        </div>
-      </div>
-    );
-  }
+    setActionLoading(`${userId}-${action}`);
+    await onAction(userId, action);
+    setActionLoading(null);
+  };
 
   return (
-    <div className="mvv-page">
-      <header className="page-header">
-        <div className="header-content">
-          <Target size={24} />
-          <h1>MVV</h1>
-          <span className="header-subtitle">Mission / Vision / Values</span>
+    <div className="sa-table-container">
+      <div className="sa-table-header">
+        <h3>ユーザー管理</h3>
+        <div className="sa-search">
+          <Search size={16} />
+          <input
+            type="text"
+            placeholder="メールアドレスで検索..."
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+          />
         </div>
-        <div className="header-actions-group">
-          <div className="brand-selector">
-            <select
-              value={selectedBrandId || ''}
-              onChange={(e) => setSelectedBrandId(e.target.value || null)}
-              className="brand-select"
-            >
-              {brands.map((brand) => (
-                <option key={brand.id} value={brand.id}>
-                  {brand.name}
-                </option>
-              ))}
-            </select>
-            <ChevronDown size={16} className="select-icon" />
-          </div>
-        </div>
-      </header>
+      </div>
 
-      {loading || leanCanvasLoading ? (
-        <div className="page-loading">
-          <Loader2 className="animate-spin" size={32} />
-        </div>
+      {loading ? (
+        <div className="sa-loading">読み込み中...</div>
+      ) : users.length === 0 ? (
+        <div className="sa-empty">ユーザーがいません</div>
       ) : (
-        <div className="mvv-layout">
-          {/* MVV 編集 */}
-          <section className="mvv-edit-section">
-            <MVVSection
-              mvv={mvv}
-              saving={saving}
-              onSave={saveMVV}
-              onAddValue={addValue}
-              onRemoveValue={removeValue}
-              onUpdateValue={updateValue}
-            />
-          </section>
+        <table className="sa-table">
+          <thead>
+            <tr>
+              <th>ユーザー</th>
+              <th>ステータス</th>
+              <th>WS数</th>
+              <th>登録日</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((user) => (
+              <tr key={user.id} className={!user.isActive ? 'inactive' : ''}>
+                <td>
+                  <div className="user-info">
+                    <span className="user-email">{user.email}</span>
+                    {user.fullName && <span className="user-name">{user.fullName}</span>}
+                    {user.isSuperAdmin && (
+                      <span className="badge badge-sa">SA</span>
+                    )}
+                  </div>
+                </td>
+                <td>
+                  <span className={`status-badge ${user.isActive ? 'active' : 'inactive'}`}>
+                    {user.isActive ? '有効' : '無効'}
+                  </span>
+                </td>
+                <td>{user.workspaceCount}</td>
+                <td>{new Date(user.createdAt).toLocaleDateString('ja-JP')}</td>
+                <td>
+                  <div className="action-buttons">
+                    {user.id !== currentUserId && (
+                      <>
+                        {user.isActive ? (
+                          <button
+                            onClick={() => handleAction(user.id, 'deactivate')}
+                            className="btn-icon btn-warning"
+                            title="無効化"
+                            disabled={actionLoading === `${user.id}-deactivate`}
+                          >
+                            {actionLoading === `${user.id}-deactivate` ? (
+                              <Loader2 className="animate-spin" size={14} />
+                            ) : (
+                              <UserX size={14} />
+                            )}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleAction(user.id, 'activate')}
+                            className="btn-icon btn-success"
+                            title="有効化"
+                            disabled={actionLoading === `${user.id}-activate`}
+                          >
+                            {actionLoading === `${user.id}-activate` ? (
+                              <Loader2 className="animate-spin" size={14} />
+                            ) : (
+                              <UserCheck size={14} />
+                            )}
+                          </button>
+                        )}
+                        {user.isSuperAdmin ? (
+                          <button
+                            onClick={() => handleAction(user.id, 'revoke_sa')}
+                            className="btn-icon btn-danger"
+                            title="SA権限剥奪"
+                            disabled={actionLoading === `${user.id}-revoke_sa`}
+                          >
+                            {actionLoading === `${user.id}-revoke_sa` ? (
+                              <Loader2 className="animate-spin" size={14} />
+                            ) : (
+                              <ShieldOff size={14} />
+                            )}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleAction(user.id, 'grant_sa')}
+                            className="btn-icon"
+                            title="SA権限付与"
+                            disabled={actionLoading === `${user.id}-grant_sa`}
+                          >
+                            {actionLoading === `${user.id}-grant_sa` ? (
+                              <Loader2 className="animate-spin" size={14} />
+                            ) : (
+                              <Shield size={14} />
+                            )}
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+```
 
-          {/* 統合ビュー */}
-          {selectedBrand && (
-            <section className="mvv-unified-section">
-              <h2>統合ビュー</h2>
-              <UnifiedView
-                brand={selectedBrand}
-                leanCanvas={leanCanvas}
-                mvv={mvv}
-              />
-            </section>
-          )}
+### 5.4 セキュリティモニター
+
+#### ファイル: `components/super-admin/SecurityMonitor.tsx`
+
+```typescript
+'use client';
+
+/**
+ * components/super-admin/SecurityMonitor.tsx
+ *
+ * セキュリティイベントモニター
+ */
+
+import { AlertTriangle, AlertCircle, Info, Filter } from 'lucide-react';
+import type { SecurityEvent, SecuritySeverity } from '@/lib/types/super-admin';
+
+interface SecurityMonitorProps {
+  events: SecurityEvent[];
+  loading: boolean;
+  severity: string | null;
+  onSeverityChange: (value: string | null) => void;
+}
+
+const severityConfig: Record<SecuritySeverity, { icon: typeof AlertTriangle; color: string; label: string }> = {
+  critical: { icon: AlertTriangle, color: '#ef4444', label: '重大' },
+  warning: { icon: AlertCircle, color: '#f59e0b', label: '警告' },
+  info: { icon: Info, color: '#3b82f6', label: '情報' },
+};
+
+export function SecurityMonitor({ events, loading, severity, onSeverityChange }: SecurityMonitorProps) {
+  return (
+    <div className="security-monitor">
+      <div className="security-header">
+        <h3>セキュリティイベント</h3>
+        <div className="severity-filter">
+          <Filter size={14} />
+          <select
+            value={severity || ''}
+            onChange={(e) => onSeverityChange(e.target.value || null)}
+          >
+            <option value="">すべて</option>
+            <option value="critical">重大のみ</option>
+            <option value="warning">警告以上</option>
+            <option value="info">情報</option>
+          </select>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="sa-loading">読み込み中...</div>
+      ) : events.length === 0 ? (
+        <div className="sa-empty">セキュリティイベントはありません</div>
+      ) : (
+        <div className="security-events-list">
+          {events.map((event) => {
+            const config = severityConfig[event.severity as SecuritySeverity] || severityConfig.info;
+            const Icon = config.icon;
+            return (
+              <div key={event.id} className={`security-event severity-${event.severity}`}>
+                <div className="event-icon" style={{ color: config.color }}>
+                  <Icon size={16} />
+                </div>
+                <div className="event-content">
+                  <div className="event-header">
+                    <span className="event-type">{event.eventType}</span>
+                    <span className="event-time">
+                      {new Date(event.createdAt).toLocaleString('ja-JP')}
+                    </span>
+                  </div>
+                  {event.userEmail && (
+                    <span className="event-user">{event.userEmail}</span>
+                  )}
+                  {event.ipAddress && (
+                    <span className="event-ip">IP: {event.ipAddress}</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
@@ -1367,412 +1254,617 @@ export default function MVVPage() {
 }
 ```
 
-### 6.2 ナビゲーション更新
+### 5.5 エクスポート
 
-**ファイル:** `app/(app)/layout.tsx` に追加
+#### ファイル: `components/super-admin/index.ts`
 
 ```typescript
-// import に追加
-import { Target } from 'lucide-react';
-
-// NAV_ITEMS に追加
-{ href: '/mvv', label: 'MVV', icon: Target },
+export { StatCard } from './StatCard';
+export { TenantsTable } from './TenantsTable';
+export { UsersTable } from './UsersTable';
+export { SecurityMonitor } from './SecurityMonitor';
 ```
 
 ### 確認ポイント
 
-- [ ] `app/(app)/mvv/page.tsx` が作成された
-- [ ] ナビゲーションに MVV リンクが追加された
+- [ ] `components/super-admin/StatCard.tsx` が作成された
+- [ ] `components/super-admin/TenantsTable.tsx` が作成された
+- [ ] `components/super-admin/UsersTable.tsx` が作成された
+- [ ] `components/super-admin/SecurityMonitor.tsx` が作成された
+- [ ] `components/super-admin/index.ts` が作成された
 
 ---
 
-## Step 7: CSS スタイル追加
+## Step 6: SA ダッシュボードページ作成
 
-**ファイル:** `app/globals.css` に追加
+### ファイル: `app/(app)/super-admin/page.tsx`
 
-```css
-/*
- * MVV 統合ビュー（Phase 19）
+```typescript
+'use client';
+
+/**
+ * app/(app)/super-admin/page.tsx
+ *
+ * Super Admin ダッシュボード
  */
 
-/* ページレイアウト */
-.mvv-page {
-  padding: 24px 0;
+import { useEffect, useState } from 'react';
+import { Shield, Users, Building2, Activity, AlertTriangle, Loader2 } from 'lucide-react';
+import { useAuth } from '@/lib/contexts/AuthContext';
+import {
+  useSystemStats,
+  useTenants,
+  useManagedUsers,
+  useSecurityEvents,
+} from '@/lib/hooks/useSuperAdmin';
+import {
+  StatCard,
+  TenantsTable,
+  UsersTable,
+  SecurityMonitor,
+} from '@/components/super-admin';
+
+type TabId = 'overview' | 'tenants' | 'users' | 'security';
+
+export default function SuperAdminPage() {
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<TabId>('overview');
+  const [isSuperAdmin, setIsSuperAdmin] = useState<boolean | null>(null);
+  const [checking, setChecking] = useState(true);
+
+  // SA権限チェック
+  useEffect(() => {
+    const checkAccess = async () => {
+      try {
+        const res = await fetch('/api/super-admin/stats');
+        setIsSuperAdmin(res.ok);
+      } catch {
+        setIsSuperAdmin(false);
+      } finally {
+        setChecking(false);
+      }
+    };
+    checkAccess();
+  }, []);
+
+  const { stats, loading: statsLoading } = useSystemStats();
+  const { tenants, loading: tenantsLoading, search: tenantSearch, setSearch: setTenantSearch } = useTenants();
+  const { users, loading: usersLoading, search: userSearch, setSearch: setUserSearch, performAction } = useManagedUsers();
+  const { events, loading: eventsLoading, severity, setSeverity } = useSecurityEvents();
+
+  if (checking) {
+    return (
+      <div className="sa-page">
+        <div className="sa-loading-full">
+          <Loader2 className="animate-spin" size={32} />
+          <p>権限を確認中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isSuperAdmin) {
+    return (
+      <div className="sa-page">
+        <div className="sa-access-denied">
+          <Shield size={48} />
+          <h2>アクセス権限がありません</h2>
+          <p>このページは Super Admin のみアクセス可能です。</p>
+        </div>
+      </div>
+    );
+  }
+
+  const tabs: { id: TabId; label: string; icon: typeof Shield }[] = [
+    { id: 'overview', label: '概要', icon: Activity },
+    { id: 'tenants', label: 'テナント', icon: Building2 },
+    { id: 'users', label: 'ユーザー', icon: Users },
+    { id: 'security', label: 'セキュリティ', icon: AlertTriangle },
+  ];
+
+  return (
+    <div className="sa-page">
+      <div className="sa-header">
+        <Shield size={24} />
+        <h1>Super Admin</h1>
+      </div>
+
+      <div className="sa-tabs">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              className={`sa-tab ${activeTab === tab.id ? 'active' : ''}`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              <Icon size={16} />
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="sa-content">
+        {activeTab === 'overview' && (
+          <div className="sa-overview">
+            <div className="stat-cards">
+              <StatCard
+                title="総ユーザー数"
+                value={stats?.totalUsers || 0}
+                icon={Users}
+                color="#3b82f6"
+              />
+              <StatCard
+                title="今日のアクティブ"
+                value={stats?.activeUsersToday || 0}
+                icon={Activity}
+                color="#10b981"
+              />
+              <StatCard
+                title="ワークスペース"
+                value={stats?.totalWorkspaces || 0}
+                icon={Building2}
+                color="#8b5cf6"
+              />
+              <StatCard
+                title="セキュリティイベント"
+                value={stats?.securityEventsToday || 0}
+                icon={AlertTriangle}
+                color={stats?.securityEventsToday && stats.securityEventsToday > 0 ? '#f59e0b' : '#6b7280'}
+              />
+            </div>
+
+            <div className="sa-overview-sections">
+              <div className="sa-section">
+                <h3>最近のテナント</h3>
+                <TenantsTable
+                  tenants={tenants.slice(0, 5)}
+                  loading={tenantsLoading}
+                  search=""
+                  onSearchChange={() => {}}
+                />
+              </div>
+              <div className="sa-section">
+                <SecurityMonitor
+                  events={events.slice(0, 10)}
+                  loading={eventsLoading}
+                  severity={null}
+                  onSeverityChange={() => {}}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'tenants' && (
+          <TenantsTable
+            tenants={tenants}
+            loading={tenantsLoading}
+            search={tenantSearch}
+            onSearchChange={setTenantSearch}
+          />
+        )}
+
+        {activeTab === 'users' && (
+          <UsersTable
+            users={users}
+            loading={usersLoading}
+            search={userSearch}
+            onSearchChange={setUserSearch}
+            onAction={performAction}
+            currentUserId={user?.id}
+          />
+        )}
+
+        {activeTab === 'security' && (
+          <SecurityMonitor
+            events={events}
+            loading={eventsLoading}
+            severity={severity}
+            onSeverityChange={setSeverity}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+```
+
+### 確認ポイント
+
+- [ ] `app/(app)/super-admin/page.tsx` が作成された
+- [ ] タブ切り替えが実装されている
+- [ ] SA権限チェックが実装されている
+
+---
+
+## Step 7: ナビゲーション更新
+
+### ファイル: `app/(app)/layout.tsx` を編集
+
+NAV_ITEMS に Super Admin リンクを追加:
+
+```typescript
+import { Shield } from 'lucide-react';
+
+// NAV_ITEMS 配列の最後に追加
+{ href: '/super-admin', label: 'Super Admin', icon: Shield },
+```
+
+**注意**: Super Admin リンクは SA ユーザーのみに表示すべきですが、簡易実装では全員に表示して、ページ側でアクセス制御します。
+
+### 確認ポイント
+
+- [ ] ナビゲーションに Super Admin リンクが追加された
+
+---
+
+## Step 8: CSS スタイル追加
+
+### ファイル: `app/globals.css` に追加
+
+```css
+/* ==========================================
+   Super Admin Dashboard Styles
+   ========================================== */
+
+.sa-page {
+  padding: 20px;
 }
 
-.mvv-layout {
+.sa-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.sa-header h1 {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.sa-loading-full,
+.sa-access-denied {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: 16px;
+  color: var(--text-muted);
+}
+
+.sa-access-denied h2 {
+  color: var(--text-dark);
+  margin: 0;
+}
+
+/* Tabs */
+.sa-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+}
+
+.sa-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.sa-tab:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.sa-tab.active {
+  background: var(--ws-secondary);
+  color: white;
+}
+
+/* Stats Cards */
+.stat-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.stat-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+}
+
+.stat-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.stat-title {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.stat-subtitle {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+/* Table Container */
+.sa-table-container {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.sa-table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sa-table-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.sa-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.sa-search input {
+  border: none;
+  background: none;
+  outline: none;
+  width: 200px;
+  color: var(--text);
+}
+
+.sa-loading,
+.sa-empty {
+  padding: 40px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+/* Table */
+.sa-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.sa-table th,
+.sa-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.sa-table th {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  background: var(--bg);
+}
+
+.sa-table tbody tr:hover {
+  background: var(--bg-hover);
+}
+
+.sa-table tbody tr.inactive {
+  opacity: 0.6;
+}
+
+/* Tenant Name */
+.tenant-name {
+  display: flex;
+  flex-direction: column;
+}
+
+.tenant-slug {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* User Info */
+.user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.user-email {
+  font-weight: 500;
+}
+
+.user-name {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.badge-sa {
+  display: inline-block;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: white;
+  background: #8b5cf6;
+  border-radius: 4px;
+  margin-top: 4px;
+  width: fit-content;
+}
+
+/* Status Badge */
+.status-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+}
+
+.status-badge.active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-badge.inactive {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Security Monitor */
+.security-monitor {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.security-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.security-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.severity-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.severity-filter select {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.security-events-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.security-event {
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.security-event:last-child {
+  border-bottom: none;
+}
+
+.security-event.severity-critical {
+  background: #fef2f2;
+}
+
+.security-event.severity-warning {
+  background: #fffbeb;
+}
+
+.event-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.event-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.event-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.event-type {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.event-time {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.event-user,
+.event-ip {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Overview Sections */
+.sa-overview-sections {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 32px;
+  gap: 24px;
 }
 
 @media (max-width: 1024px) {
-  .mvv-layout {
+  .sa-overview-sections {
     grid-template-columns: 1fr;
   }
 }
 
-/* MVV セクション */
-.mvv-section {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.mvv-item {
-  background: var(--bg-white);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 20px;
-}
-
-.mvv-item-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-
-.mvv-item-icon {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 10px;
-  color: white;
-}
-
-.mvv-item-icon.mission {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-}
-
-.mvv-item-icon.vision {
-  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
-}
-
-.mvv-item-icon.values {
-  background: linear-gradient(135deg, #ec4899, #be185d);
-}
-
-.mvv-item-label {
-  flex: 1;
-}
-
-.mvv-item-label h3 {
+.sa-section h3 {
+  margin-bottom: 16px;
   font-size: 16px;
   font-weight: 600;
-  margin: 0;
-}
-
-.mvv-item-label .label-ja {
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.mvv-item-description {
-  font-size: 13px;
-  color: var(--text-muted);
-  margin-bottom: 16px;
-}
-
-.mvv-item-content {
-  padding: 16px;
-  background: var(--bg-gray);
-  border-radius: 8px;
-}
-
-.mvv-item-content .content-text {
-  font-size: 15px;
-  line-height: 1.7;
-  color: var(--text-dark);
-  margin: 0;
-}
-
-.mvv-item-content .content-empty {
-  font-size: 14px;
-  color: var(--text-muted);
-  font-style: italic;
-  margin: 0;
-}
-
-/* 編集フォーム */
-.mvv-edit-form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.mvv-edit-form .edit-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-/* Values リスト */
-.values-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.value-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background: var(--bg-gray);
-  border-radius: 8px;
-}
-
-.value-item .value-text {
-  flex: 1;
-  font-size: 14px;
-}
-
-.value-item .value-actions {
-  display: flex;
-  gap: 4px;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.value-item:hover .value-actions {
-  opacity: 1;
-}
-
-.value-item .value-edit {
-  display: flex;
-  gap: 8px;
-  flex: 1;
-}
-
-.value-add {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.value-add .form-input {
-  flex: 1;
-}
-
-.values-examples {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-}
-
-.values-examples .examples-label {
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.values-examples .example-chip {
-  font-size: 12px;
-  padding: 4px 10px;
-  background: var(--bg-gray);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.values-examples .example-chip:hover {
-  background: var(--primary-alpha-10);
-  border-color: var(--primary);
-  color: var(--primary);
-}
-
-/* 折り畳みコンポーネント */
-.collapsible {
-  background: var(--bg-white);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  overflow: hidden;
-  margin-bottom: 16px;
-}
-
-.collapsible-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 16px 20px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  text-align: left;
-}
-
-.collapsible-header:hover {
-  background: var(--bg-gray);
-}
-
-.collapsible-icon {
-  color: var(--text-muted);
-}
-
-.collapsible-title {
-  flex: 1;
-}
-
-.collapsible-title .title-text {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-dark);
-}
-
-.collapsible-title .subtitle-text {
-  display: block;
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-top: 2px;
-}
-
-.collapsible-content {
-  padding: 0 20px 20px;
-}
-
-/* 統合ビュー */
-.unified-view {
-  display: flex;
-  flex-direction: column;
-}
-
-.unified-brand {
-  padding: 16px;
-}
-
-.unified-brand .brand-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 12px;
-}
-
-.unified-brand .brand-logo {
-  width: 48px;
-  height: 48px;
-  object-fit: contain;
-  border-radius: 8px;
-  background: var(--bg-gray);
-}
-
-.unified-brand .brand-info {
-  flex: 1;
-}
-
-.unified-brand .brand-info h3 {
-  font-size: 16px;
-  font-weight: 600;
-  margin: 0;
-}
-
-.unified-brand .tagline {
-  font-size: 13px;
-  color: var(--text-muted);
-  margin: 4px 0 0;
-}
-
-.unified-brand .brand-story {
-  font-size: 13px;
-  color: var(--text-light);
-  line-height: 1.6;
-  margin: 0;
-}
-
-.unified-mvv .mvv-summary {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.unified-mvv .mvv-summary-item {
-  padding: 12px;
-  background: var(--bg-gray);
-  border-radius: 8px;
-}
-
-.unified-mvv .mvv-summary-item .label {
-  display: block;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin-bottom: 6px;
-}
-
-.unified-mvv .mvv-summary-item p {
-  font-size: 14px;
-  color: var(--text-dark);
-  margin: 0;
-}
-
-.unified-mvv .values-list {
-  list-style: disc;
-  padding-left: 20px;
-  margin: 0;
-}
-
-.unified-canvas .canvas-summary-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.unified-canvas .canvas-summary-item {
-  padding: 12px;
-  background: var(--bg-gray);
-  border-radius: 8px;
-}
-
-.unified-canvas .canvas-summary-item .label {
-  display: block;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin-bottom: 6px;
-}
-
-.unified-canvas .canvas-summary-item ul {
-  list-style: disc;
-  padding-left: 16px;
-  margin: 0;
-  font-size: 13px;
-}
-
-.unified-canvas .canvas-summary-item .more {
-  color: var(--text-muted);
-  font-style: italic;
-}
-
-.unified-canvas .canvas-summary-item .empty {
-  font-size: 13px;
-  color: var(--text-muted);
-  font-style: italic;
-  margin: 0;
-}
-
-.unified-canvas .view-full-link {
-  display: block;
-  text-align: center;
-  font-size: 13px;
-  color: var(--primary);
-}
-
-.empty-message {
-  text-align: center;
-  padding: 24px;
-  color: var(--text-muted);
-}
-
-.empty-message p {
-  margin-bottom: 12px;
 }
 ```
 
@@ -1782,7 +1874,7 @@ import { Target } from 'lucide-react';
 
 ---
 
-## Step 8: 型チェック & ビルド
+## Step 9: 型チェック & ビルド
 
 ```bash
 npm run type-check
@@ -1791,107 +1883,97 @@ npm run build
 
 ### 確認ポイント
 
-- [ ] 型チェックがエラーなく完了
-- [ ] ビルドがエラーなく完了
+- [ ] 型エラーがない
+- [ ] ビルドが成功する
 
 ---
 
-## Step 9: 動作確認
+## Step 10: 動作確認
 
-### 9.1 開発サーバー起動
-
-```bash
-npm run dev
-```
-
-### 9.2 確認項目
-
-1. http://localhost:3000/mvv にアクセス
-2. 以下を確認:
-   - [ ] ブランド選択ができる
-   - [ ] Mission を編集・保存できる
-   - [ ] Vision を編集・保存できる
-   - [ ] Values を追加・編集・削除できる
-   - [ ] 統合ビューにブランド情報が表示される
-   - [ ] 統合ビューに Lean Canvas サマリーが表示される
-   - [ ] 折り畳みが動作する
+1. ブラウザで `/super-admin` にアクセス
+2. SA権限がないユーザーはアクセス拒否されることを確認
+3. SA権限があるユーザーでアクセスし、以下を確認:
+   - [ ] 統計カードが表示される
+   - [ ] テナント一覧が表示される
+   - [ ] ユーザー一覧が表示される
+   - [ ] セキュリティイベントが表示される
+   - [ ] ユーザーの有効化/無効化ができる
+   - [ ] SA権限の付与/剥奪ができる
 
 ---
 
-## Step 10: Git プッシュ
+## Step 11: Git プッシュ
 
 ```bash
 git add -A
-git commit -m "Phase 19: MVV（Mission/Vision/Value）統合ビュー
+git commit -m "feat: Phase 19 - Super Admin ダッシュボードを実装
 
-- supabase/migrations/20260113_phase19_mvv.sql: MVV テーブル作成
-- lib/types/mvv.ts: MVV 型定義
-- app/api/mvv/route.ts: MVV 取得・作成 API
-- app/api/mvv/[mvvId]/route.ts: MVV 更新・削除 API
-- lib/hooks/useMVV.ts: MVV Hook
-- components/mvv/Collapsible.tsx: 折り畳みコンポーネント
-- components/mvv/MVVSection.tsx: MVV 編集セクション
-- components/mvv/UnifiedView.tsx: 統合ビュー
-- app/(app)/mvv/page.tsx: MVV ページ
-- CSS スタイル追加
+- Supabase テーブル: system_metrics, security_events 追加
+- lib/types/super-admin.ts: SA機能の型定義
+- lib/supabase/check-super-admin.ts: SA権限チェック
+- app/api/super-admin/: SA専用API (stats, tenants, users, security-events)
+- lib/hooks/useSuperAdmin.ts: SAフック群
+- components/super-admin/: UIコンポーネント
+- app/(app)/super-admin/page.tsx: SAダッシュボード
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
 Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
 
-git push
+git push origin main
 ```
 
 ---
 
 ## 完了チェックリスト
 
-### DB マイグレーション
-- [ ] `mvv` テーブル作成
-- [ ] RLS ポリシー設定
-- [ ] ユニーク制約（1ブランド1MVV）
+### データベース
+- [ ] profiles.is_super_admin カラムが追加された
+- [ ] system_metrics テーブルが作成された
+- [ ] security_events テーブルが作成された
+- [ ] RLS ポリシーが設定された
+- [ ] 自分のアカウントが SA に設定された
 
 ### 型定義
-- [ ] MVV 型
-- [ ] MVVCreate / MVVUpdate 型
-- [ ] MVV_SECTION_INFO 定数
+- [ ] lib/types/super-admin.ts が作成された
 
 ### API Routes
-- [ ] `GET /api/mvv?brandId=xxx`
-- [ ] `POST /api/mvv`
-- [ ] `GET /api/mvv/:mvvId`
-- [ ] `PATCH /api/mvv/:mvvId`
-- [ ] `DELETE /api/mvv/:mvvId`
+- [ ] lib/supabase/check-super-admin.ts が作成された
+- [ ] app/api/super-admin/stats/route.ts が作成された
+- [ ] app/api/super-admin/tenants/route.ts が作成された
+- [ ] app/api/super-admin/users/route.ts が作成された
+- [ ] app/api/super-admin/users/[userId]/route.ts が作成された
+- [ ] app/api/super-admin/security-events/route.ts が作成された
 
 ### React Hooks
-- [ ] `useMVV` 作成
-- [ ] saveMVV（upsert）動作
-- [ ] addValue / removeValue / updateValue
+- [ ] lib/hooks/useSuperAdmin.ts が作成された
 
 ### UI コンポーネント
-- [ ] `Collapsible` 作成
-- [ ] `MVVSection` 作成
-- [ ] `UnifiedView` 作成
+- [ ] components/super-admin/StatCard.tsx が作成された
+- [ ] components/super-admin/TenantsTable.tsx が作成された
+- [ ] components/super-admin/UsersTable.tsx が作成された
+- [ ] components/super-admin/SecurityMonitor.tsx が作成された
+- [ ] components/super-admin/index.ts が作成された
 
-### 統合
-- [ ] `/mvv` ページ作成
-- [ ] ナビゲーション更新
-- [ ] 型チェック成功
-- [ ] ビルド成功
-- [ ] Git プッシュ完了
+### ページ
+- [ ] app/(app)/super-admin/page.tsx が作成された
+
+### スタイル
+- [ ] Super Admin 用 CSS が追加された
+
+### 品質
+- [ ] 型チェックが通る
+- [ ] ビルドが成功する
+- [ ] SA権限チェックが正常に動作する
+- [ ] Git にプッシュされた
 
 ---
 
-## 次のステップ（Phase 20 以降）
+## 次のステップ
 
-1. **事業計画書エクスポート**
-   - Brand + MVV + Lean Canvas + Product Sections を PDF 出力
-   - 営業資料・投資家向けフォーマット
+Phase 19 完了後は、以下の追加機能を検討できます:
 
-2. **AI アシスタント連携**
-   - MVV から Lean Canvas 提案
-   - ブランドストーリー自動生成
-
-3. **チーム共有機能**
-   - MVV の共有・コメント
-   - バージョン管理
+- メトリクスの定期記録（Cron Job）
+- ダッシュボードのグラフ表示
+- ユーザーへのメール通知
+- より詳細なセキュリティ監視

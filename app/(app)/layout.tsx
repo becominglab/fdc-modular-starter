@@ -24,6 +24,7 @@ import {
   Package,
   Settings,
   ClipboardList,
+  Shield,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -65,6 +66,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
   // デモユーザー（localStorage）
   const [demoUser, setDemoUser] = useState<DemoUser | null>(null);
   const [demoLoading, setDemoLoading] = useState(true);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   // デモセッションをチェック
   useEffect(() => {
@@ -79,6 +81,23 @@ function AppContent({ children }: { children: React.ReactNode }) {
     }
     setDemoLoading(false);
   }, []);
+
+  // Super Admin 権限をチェック
+  useEffect(() => {
+    const checkSuperAdmin = async () => {
+      if (!supabaseUser) {
+        setIsSuperAdmin(false);
+        return;
+      }
+      try {
+        const res = await fetch('/api/super-admin/stats');
+        setIsSuperAdmin(res.ok);
+      } catch {
+        setIsSuperAdmin(false);
+      }
+    };
+    checkSuperAdmin();
+  }, [supabaseUser]);
 
   // ログアウト処理
   const handleLogout = useCallback(async () => {
@@ -149,6 +168,15 @@ function AppContent({ children }: { children: React.ReactNode }) {
               </a>
             );
           })}
+          {isSuperAdmin && (
+            <a
+              href="/super-admin"
+              className={`tab tab-super-admin ${pathname === '/super-admin' ? 'active' : ''}`}
+            >
+              <Shield className="tab-icon" size={20} />
+              Super Admin
+            </a>
+          )}
         </nav>
 
         {/* メインコンテンツ */}
