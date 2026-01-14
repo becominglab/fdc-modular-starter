@@ -25,6 +25,7 @@ import {
   Settings,
   ClipboardList,
   Shield,
+  User,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -142,9 +143,10 @@ function AppContent({ children }: { children: React.ReactNode }) {
           <p className="subtitle">Founders Direct Cockpit - 学習用スターター</p>
         </div>
         <div className="header-actions">
-          <span style={{ fontSize: '14px', color: 'var(--text-light)' }}>
-            {displayName}
-          </span>
+          <a href="/profile" className="header-user-link">
+            <User size={16} />
+            <span>{displayName}</span>
+          </a>
           <button className="btn btn-secondary btn-small" onClick={handleLogout}>
             <LogOut size={16} />
             ログアウト

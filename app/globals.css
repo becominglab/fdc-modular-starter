@@ -4006,3 +4006,189 @@ html {
 .sa-back-btn:hover {
   background: var(--primary-dark);
 }
+
+/* =====================================================
+   Profile Page Styles
+   ===================================================== */
+
+/* Header user link */
+.header-user-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  color: var(--text-light);
+  font-size: 14px;
+  text-decoration: none;
+  transition: background 0.2s, color 0.2s;
+}
+
+.header-user-link:hover {
+  background: var(--primary-alpha-10);
+  color: var(--primary);
+}
+
+/* Profile page layout */
+.profile-page {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.profile-page .page-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.profile-page .page-header h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.profile-card {
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.profile-avatar-section,
+.profile-info-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.profile-avatar-section h2,
+.profile-info-section h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: 8px;
+}
+
+.profile-info-section .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.profile-info-section label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-medium);
+}
+
+.profile-info-section .form-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Avatar upload component */
+.avatar-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.avatar-container {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--bg-gray);
+  border: 3px solid var(--border);
+}
+
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  background: var(--bg-gray);
+}
+
+.avatar-loading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.avatar-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.avatar-error {
+  color: var(--error);
+  font-size: 13px;
+}
+
+.avatar-hint {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* Message feedback */
+.profile-page .message {
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.profile-page .message--success {
+  background: rgba(76, 175, 80, 0.1);
+  color: var(--success);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.profile-page .message--error {
+  background: rgba(244, 67, 54, 0.1);
+  color: var(--error);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+/* Button small variant */
+.btn-small {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+/* Responsive */
+@media (min-width: 640px) {
+  .profile-card {
+    flex-direction: row;
+    gap: 48px;
+  }
+
+  .profile-avatar-section {
+    flex-shrink: 0;
+  }
+
+  .profile-info-section {
+    flex: 1;
+  }
+}
