@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { sendInvitationEmail } from '@/lib/email';
 import { z } from 'zod';
 import crypto from 'crypto';
 
@@ -81,17 +82,20 @@ export async function POST(
     // Service client を使用して RLS をバイパス
     const serviceClient = createServiceClient();
 
-    // 権限確認
-    const { data: membership } = await serviceClient
+    // 権限確認とワークスペース情報取得
+    const { data: membershipData } = await serviceClient
       .from('workspace_members')
-      .select('role')
+      .select('role, workspaces(name)')
       .eq('workspace_id', workspaceId)
       .eq('user_id', user.id)
       .single();
 
-    if (!membership || !['owner', 'admin'].includes(membership.role)) {
+    if (!membershipData || !['owner', 'admin'].includes(membershipData.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
+
+    const membership = membershipData;
+    const workspaceName = (membershipData.workspaces as { name: string } | null)?.name || 'ワークスペース';
 
     const body = await request.json();
     const result = createInvitationSchema.safeParse(body);
@@ -161,7 +165,25 @@ export async function POST(
       },
     });
 
-    return NextResponse.json(invitation, { status: 201 });
+    // 招待メールを送信
+    const emailResult = await sendInvitationEmail({
+      to: result.data.email,
+      workspaceName,
+      inviterEmail: user.email || 'unknown',
+      role: result.data.role,
+      token,
+      expiresAt: expiresAt.toISOString(),
+    });
+
+    // メール送信結果をレスポンスに含める
+    return NextResponse.json(
+      {
+        ...invitation,
+        emailSent: emailResult.success,
+        emailError: emailResult.error,
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error('Invitations POST error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
