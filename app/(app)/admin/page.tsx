@@ -26,6 +26,8 @@ export default function AdminPage() {
   const { user } = useAuth();
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<WorkspaceRole>('member');
+  const [loading, setLoading] = useState(true);
+  const [noWorkspace, setNoWorkspace] = useState(false);
 
   // デモモード or Supabaseモードでワークスペースを取得
   useEffect(() => {
@@ -40,10 +42,15 @@ export default function AdminPage() {
             if (data.workspaces && data.workspaces.length > 0) {
               setWorkspaceId(data.workspaces[0].id);
               setCurrentUserRole(data.workspaces[0].role || 'owner');
+            } else {
+              // ワークスペースが存在しない
+              setNoWorkspace(true);
             }
           }
         } catch {
           // エラー無視
+        } finally {
+          setLoading(false);
         }
       };
       fetchWorkspace();
@@ -60,6 +67,7 @@ export default function AdminPage() {
           setCurrentUserRole('owner');
         }
       }
+      setLoading(false);
     }
   }, [user]);
 
@@ -88,11 +96,33 @@ export default function AdminPage() {
   // 権限チェック
   const canAccessAdmin = currentUserRole === 'owner' || currentUserRole === 'admin';
 
-  if (!workspaceId) {
+  // ローディング中
+  if (loading) {
     return (
       <div className="admin-page">
         <div className="admin-loading">
           <p>ワークスペースを読み込み中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ワークスペースが存在しない場合
+  if (noWorkspace || !workspaceId) {
+    return (
+      <div className="admin-page">
+        <div className="admin-header">
+          <Settings size={24} />
+          <h1>ワークスペース管理</h1>
+        </div>
+        <div className="admin-content">
+          <div className="admin-section">
+            <div className="empty-message">
+              <AlertCircle size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
+              <h3 style={{ marginBottom: '8px' }}>ワークスペースがありません</h3>
+              <p>ワークスペースを作成するか、既存のワークスペースへの招待を受け取ってください。</p>
+            </div>
+          </div>
         </div>
       </div>
     );
