@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { createWorkspaceSchema } from '@/lib/validations/workspace';
 
 /**
@@ -18,7 +18,9 @@ export async function GET() {
       );
     }
 
-    const { data, error } = await supabase
+    // Service Role クライアントを使用してRLSをバイパス
+    const serviceClient = createServiceClient();
+    const { data, error } = await serviceClient
       .from('workspace_members')
       .select(`
         role,
@@ -42,7 +44,13 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json(data);
+    // ワークスペース情報を整形して返す
+    const workspaces = data?.map(item => ({
+      ...item.workspace,
+      role: item.role,
+    })) || [];
+
+    return NextResponse.json({ workspaces });
   } catch (error) {
     console.error('Unexpected error:', error);
     return NextResponse.json(
