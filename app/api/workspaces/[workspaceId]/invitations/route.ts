@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { z } from 'zod';
 import crypto from 'crypto';
 
@@ -29,8 +29,11 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Service client を使用して RLS をバイパス
+    const serviceClient = createServiceClient();
+
     // 権限確認
-    const { data: membership } = await supabase
+    const { data: membership } = await serviceClient
       .from('workspace_members')
       .select('role')
       .eq('workspace_id', workspaceId)
@@ -42,7 +45,7 @@ export async function GET(
     }
 
     // 招待一覧取得（未承諾のみ）
-    const { data: invitations, error } = await supabase
+    const { data: invitations, error } = await serviceClient
       .from('invitations')
       .select('*')
       .eq('workspace_id', workspaceId)
@@ -75,8 +78,11 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Service client を使用して RLS をバイパス
+    const serviceClient = createServiceClient();
+
     // 権限確認
-    const { data: membership } = await supabase
+    const { data: membership } = await serviceClient
       .from('workspace_members')
       .select('role')
       .eq('workspace_id', workspaceId)
@@ -103,7 +109,7 @@ export async function POST(
     }
 
     // 既存の未承諾招待確認
-    const { data: existingInvitation } = await supabase
+    const { data: existingInvitation } = await serviceClient
       .from('invitations')
       .select('id')
       .eq('workspace_id', workspaceId)
@@ -124,7 +130,7 @@ export async function POST(
     expiresAt.setDate(expiresAt.getDate() + 7); // 7日間有効
 
     // 招待作成
-    const { data: invitation, error: createError } = await supabase
+    const { data: invitation, error: createError } = await serviceClient
       .from('invitations')
       .insert({
         workspace_id: workspaceId,
@@ -143,7 +149,7 @@ export async function POST(
     }
 
     // 監査ログ記録
-    await supabase.from('audit_logs').insert({
+    await serviceClient.from('audit_logs').insert({
       workspace_id: workspaceId,
       user_id: user.id,
       action: 'invite_sent',

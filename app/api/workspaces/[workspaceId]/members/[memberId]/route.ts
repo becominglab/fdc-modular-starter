@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { updateRoleSchema } from '@/lib/validations/workspace';
 
 interface RouteParams {
@@ -23,8 +23,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // Service client を使用して RLS をバイパス
+    const serviceClient = createServiceClient();
+
     // 権限チェック（OWNER/ADMIN のみ）
-    const { data: currentUserMembership } = await supabase
+    const { data: currentUserMembership } = await serviceClient
       .from('workspace_members')
       .select('role')
       .eq('workspace_id', workspaceId)
@@ -39,7 +42,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     // 対象メンバーを取得
-    const { data: targetMember } = await supabase
+    const { data: targetMember } = await serviceClient
       .from('workspace_members')
       .select('user_id, role')
       .eq('id', memberId)
@@ -76,7 +79,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       }
 
       // 現在のオーナーをADMINに降格
-      const { error: demoteError } = await supabase
+      const { error: demoteError } = await serviceClient
         .from('workspace_members')
         .update({ role: 'admin' })
         .eq('workspace_id', workspaceId)
@@ -110,7 +113,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const oldRole = targetMember.role;
 
     // ロールを更新
-    const { data: updatedMember, error: updateError } = await supabase
+    const { data: updatedMember, error: updateError } = await serviceClient
       .from('workspace_members')
       .update({ role: newRole })
       .eq('id', memberId)
@@ -126,7 +129,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     // 監査ログ記録
-    await supabase.from('audit_logs').insert({
+    await serviceClient.from('audit_logs').insert({
       workspace_id: workspaceId,
       user_id: user.id,
       action: 'role_changed',
@@ -166,8 +169,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // Service client を使用して RLS をバイパス
+    const serviceClient = createServiceClient();
+
     // 対象メンバーを取得
-    const { data: targetMember } = await supabase
+    const { data: targetMember } = await serviceClient
       .from('workspace_members')
       .select('user_id, role')
       .eq('id', memberId)
@@ -194,7 +200,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       }
     } else {
       // 他のメンバーを削除する場合は権限チェック
-      const { data: currentUserMembership } = await supabase
+      const { data: currentUserMembership } = await serviceClient
         .from('workspace_members')
         .select('role')
         .eq('workspace_id', workspaceId)
@@ -226,7 +232,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     // メンバーを削除
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await serviceClient
       .from('workspace_members')
       .delete()
       .eq('id', memberId);
@@ -240,7 +246,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     // 監査ログ記録
-    await supabase.from('audit_logs').insert({
+    await serviceClient.from('audit_logs').insert({
       workspace_id: workspaceId,
       user_id: user.id,
       action: 'member_removed',

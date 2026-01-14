@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 
 // DELETE: 招待取り消し
 export async function DELETE(
@@ -21,8 +21,11 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Service client を使用して RLS をバイパス
+    const serviceClient = createServiceClient();
+
     // 権限確認
-    const { data: membership } = await supabase
+    const { data: membership } = await serviceClient
       .from('workspace_members')
       .select('role')
       .eq('workspace_id', workspaceId)
@@ -34,7 +37,7 @@ export async function DELETE(
     }
 
     // 招待確認
-    const { data: invitation } = await supabase
+    const { data: invitation } = await serviceClient
       .from('invitations')
       .select('*')
       .eq('id', invitationId)
@@ -46,7 +49,7 @@ export async function DELETE(
     }
 
     // 招待削除
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await serviceClient
       .from('invitations')
       .delete()
       .eq('id', invitationId);
@@ -57,7 +60,7 @@ export async function DELETE(
     }
 
     // 監査ログ記録
-    await supabase.from('audit_logs').insert({
+    await serviceClient.from('audit_logs').insert({
       workspace_id: workspaceId,
       user_id: user.id,
       action: 'invite_revoked',

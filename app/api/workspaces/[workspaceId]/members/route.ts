@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { inviteMemberSchema } from '@/lib/validations/workspace';
 
 interface RouteParams {
@@ -23,8 +23,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // Service client を使用して RLS をバイパス
+    const serviceClient = createServiceClient();
+
     // メンバーシップを確認
-    const { data: membership } = await supabase
+    const { data: membership } = await serviceClient
       .from('workspace_members')
       .select('role')
       .eq('workspace_id', workspaceId)
@@ -39,7 +42,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // メンバー一覧を取得（ユーザー情報付き）
-    const { data: members, error } = await supabase
+    const { data: members, error } = await serviceClient
       .from('workspace_members')
       .select(`
         id,
@@ -86,8 +89,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // Service client を使用して RLS をバイパス
+    const serviceClient = createServiceClient();
+
     // 権限チェック（OWNER/ADMIN のみ）
-    const { data: membership } = await supabase
+    const { data: membership } = await serviceClient
       .from('workspace_members')
       .select('role')
       .eq('workspace_id', workspaceId)
@@ -117,7 +123,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Note: この実装ではauth.usersテーブルへの直接アクセスが必要
     // 実際の実装では招待メール機能などを使用することが多い
     // profiles テーブルは別途作成が必要
-    const { data: invitedUser } = await (supabase as any)
+    const { data: invitedUser } = await (serviceClient as any)
       .from('profiles')
       .select('id')
       .eq('email', email)
@@ -131,7 +137,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // 既にメンバーか確認
-    const { data: existingMember } = await supabase
+    const { data: existingMember } = await serviceClient
       .from('workspace_members')
       .select('id')
       .eq('workspace_id', workspaceId)
@@ -146,7 +152,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // メンバーを追加
-    const { data: newMember, error: insertError } = await supabase
+    const { data: newMember, error: insertError } = await serviceClient
       .from('workspace_members')
       .insert({
         workspace_id: workspaceId,

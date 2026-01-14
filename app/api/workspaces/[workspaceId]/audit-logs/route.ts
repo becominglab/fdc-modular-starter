@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 
 // GET: 監査ログ一覧取得
 export async function GET(
@@ -21,8 +21,11 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Service client を使用して RLS をバイパス
+    const serviceClient = createServiceClient();
+
     // 権限確認
-    const { data: membership } = await supabase
+    const { data: membership } = await serviceClient
       .from('workspace_members')
       .select('role')
       .eq('workspace_id', workspaceId)
@@ -40,7 +43,7 @@ export async function GET(
     const action = searchParams.get('action');
 
     // 監査ログ取得
-    let query = supabase
+    let query = serviceClient
       .from('audit_logs')
       .select('*')
       .eq('workspace_id', workspaceId)

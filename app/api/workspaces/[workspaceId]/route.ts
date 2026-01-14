@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { updateWorkspaceSchema } from '@/lib/validations/workspace';
 
 interface RouteParams {
@@ -23,8 +23,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // Service client を使用して RLS をバイパス
+    const serviceClient = createServiceClient();
+
     // メンバーシップを確認
-    const { data: membership } = await supabase
+    const { data: membership } = await serviceClient
       .from('workspace_members')
       .select('role')
       .eq('workspace_id', workspaceId)
@@ -38,7 +41,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const { data: workspace, error } = await supabase
+    const { data: workspace, error } = await serviceClient
       .from('workspaces')
       .select('*')
       .eq('id', workspaceId)
@@ -81,8 +84,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // Service client を使用して RLS をバイパス
+    const serviceClient = createServiceClient();
+
     // 権限チェック（OWNER/ADMIN のみ）
-    const { data: membership } = await supabase
+    const { data: membership } = await serviceClient
       .from('workspace_members')
       .select('role')
       .eq('workspace_id', workspaceId)
@@ -106,7 +112,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const { data: workspace, error } = await supabase
+    const { data: workspace, error } = await serviceClient
       .from('workspaces')
       .update(validation.data)
       .eq('id', workspaceId)
@@ -148,8 +154,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // Service client を使用して RLS をバイパス
+    const serviceClient = createServiceClient();
+
     // 権限チェック（OWNER のみ）
-    const { data: membership } = await supabase
+    const { data: membership } = await serviceClient
       .from('workspace_members')
       .select('role')
       .eq('workspace_id', workspaceId)
@@ -163,7 +172,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const { error } = await supabase
+    const { error } = await serviceClient
       .from('workspaces')
       .delete()
       .eq('id', workspaceId);
