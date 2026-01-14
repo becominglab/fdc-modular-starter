@@ -60,6 +60,10 @@ export function AvatarUpload({
       setPreview(null);
     } finally {
       setUploading(false);
+      // 入力をリセット（同じファイルを再選択可能にする）
+      if (inputRef.current) {
+        inputRef.current.value = '';
+      }
     }
   };
 

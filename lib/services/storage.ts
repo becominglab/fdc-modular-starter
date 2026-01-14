@@ -21,16 +21,22 @@ export async function uploadFile(options: UploadOptions): Promise<UploadResult> 
     return { success: false, error: `ファイルサイズは${maxSizeMB}MB以下にしてください` };
   }
 
-  // ファイル形式チェック
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'];
+  // ファイル形式チェック（SVGはセキュリティリスクのため除外）
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
   if (!allowedTypes.includes(file.type)) {
-    return { success: false, error: '対応していないファイル形式です' };
+    return { success: false, error: '対応していないファイル形式です（JPEG, PNG, WebP, GIF）' };
   }
 
   const supabase = createClient();
 
-  // ファイル名生成（タイムスタンプ + 元のファイル名）
-  const ext = file.name.split('.').pop();
+  // ファイル名生成（MIMEタイプから拡張子を決定）
+  const extMap: Record<string, string> = {
+    'image/jpeg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+    'image/gif': 'gif',
+  };
+  const ext = extMap[file.type] || 'jpg';
   const fileName = `${Date.now()}.${ext}`;
   const filePath = `${folder}/${fileName}`;
 

@@ -35,8 +35,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid file type' }, { status: 400 });
     }
 
-    // ファイル名生成
-    const ext = file.name.split('.').pop();
+    // ファイル名生成（MIMEタイプから拡張子を決定）
+    const extMap: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/webp': 'webp',
+      'image/gif': 'gif',
+    };
+    const ext = extMap[file.type] || 'jpg';
     const fileName = `${Date.now()}.${ext}`;
     const filePath = `${user.id}/${fileName}`;
 
