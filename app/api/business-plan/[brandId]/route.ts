@@ -88,12 +88,10 @@ function calculateRevenue(
     const tierProducts = products.filter(p => p.tier === tier);
     const defaults = REVENUE_DEFAULTS[tier];
 
-    const averagePrice = tierProducts.length > 0
-      ? tierProducts.reduce((sum, p) => {
-          if (p.price_type === 'free') return sum;
-          return sum + (p.price_min || 0);
-        }, 0) / tierProducts.filter(p => p.price_type !== 'free').length || 0
-      : 0;
+    // 有料商品のみを抽出して平均価格を計算
+    const paidProducts = tierProducts.filter(p => p.price_type !== 'free');
+    const totalPrice = paidProducts.reduce((sum, p) => sum + (p.price_min || 0), 0);
+    const averagePrice = paidProducts.length > 0 ? totalPrice / paidProducts.length : 0;
 
     const estimatedSales = defaults.salesPerMonth;
     const subtotal = Math.round(averagePrice * estimatedSales * defaults.conversionRate);
