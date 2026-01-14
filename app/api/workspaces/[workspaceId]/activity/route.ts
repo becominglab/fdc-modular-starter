@@ -89,7 +89,12 @@ export async function GET(
 
     if (error) {
       console.error('Activity fetch error:', error);
-      return NextResponse.json({ error: 'Failed to fetch activity' }, { status: 500 });
+      // テーブルが存在しない場合やエラーの場合は空のレスポンスを返す
+      return NextResponse.json({
+        logs: [],
+        hasMore: false,
+        nextCursor: null,
+      });
     }
 
     const typedLogs = logs as AuditLog[];

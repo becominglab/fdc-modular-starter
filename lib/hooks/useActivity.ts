@@ -41,7 +41,15 @@ export function useActivity(workspaceId: string) {
       const currentCursor = reset ? null : cursor;
       const res = await fetch(buildUrl(currentCursor, filtersRef.current));
 
-      if (!res.ok) throw new Error('Failed to fetch');
+      if (!res.ok) {
+        // APIエラーの場合は空のリストとして処理
+        console.warn('Activity API returned error:', res.status);
+        if (reset) {
+          setLogs([]);
+        }
+        setHasMore(false);
+        return;
+      }
 
       const data: ActivityResponse = await res.json();
 
@@ -50,6 +58,11 @@ export function useActivity(workspaceId: string) {
       setCursor(data.nextCursor);
     } catch (error) {
       console.error('Activity fetch error:', error);
+      // エラー時は空のリストとして処理
+      if (reset) {
+        setLogs([]);
+      }
+      setHasMore(false);
     } finally {
       setLoading(false);
     }
