@@ -112,6 +112,7 @@ export default function AdminPage() {
     loading: invitationsLoading,
     sendInvitation,
     revokeInvitation,
+    updateInvitationRole,
   } = useInvitations(workspaceId);
 
   const {
@@ -210,6 +211,7 @@ export default function AdminPage() {
           loading={invitationsLoading}
           onSendInvitation={sendInvitation}
           onRevokeInvitation={revokeInvitation}
+          onUpdateInvitationRole={updateInvitationRole}
         />
 
         {/* 監査ログ */}

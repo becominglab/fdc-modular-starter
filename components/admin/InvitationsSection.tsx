@@ -17,6 +17,7 @@ interface InvitationsSectionProps {
   loading: boolean;
   onSendInvitation: (email: string, role: 'admin' | 'member') => Promise<Invitation | null>;
   onRevokeInvitation: (invitationId: string) => Promise<boolean>;
+  onUpdateInvitationRole: (invitationId: string, role: 'admin' | 'member') => Promise<Invitation | null>;
 }
 
 export function InvitationsSection({
@@ -25,6 +26,7 @@ export function InvitationsSection({
   loading,
   onSendInvitation,
   onRevokeInvitation,
+  onUpdateInvitationRole,
 }: InvitationsSectionProps) {
   const [showForm, setShowForm] = useState(false);
   const [email, setEmail] = useState('');
@@ -32,6 +34,7 @@ export function InvitationsSection({
   const [sending, setSending] = useState(false);
   const [revoking, setRevoking] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [updatingRole, setUpdatingRole] = useState<string | null>(null);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,6 +63,12 @@ export function InvitationsSection({
     navigator.clipboard.writeText(link);
     setCopied(invitation.id);
     setTimeout(() => setCopied(null), 2000);
+  };
+
+  const handleRoleChange = async (invitationId: string, newRole: 'admin' | 'member') => {
+    setUpdatingRole(invitationId);
+    await onUpdateInvitationRole(invitationId, newRole);
+    setUpdatingRole(null);
   };
 
   const isExpired = (expiresAt: string) => new Date(expiresAt) < new Date();
@@ -130,7 +139,19 @@ export function InvitationsSection({
               <div className="invitation-info">
                 <span className="invitation-email">{invitation.email}</span>
                 <div className="invitation-meta">
-                  <RoleBadge role={invitation.role} size="sm" />
+                  {currentUserRole === 'owner' ? (
+                    <select
+                      value={invitation.role}
+                      onChange={(e) => handleRoleChange(invitation.id, e.target.value as 'admin' | 'member')}
+                      className="role-select"
+                      disabled={updatingRole === invitation.id || isExpired(invitation.expires_at)}
+                    >
+                      <option value="member">メンバー</option>
+                      <option value="admin">管理者</option>
+                    </select>
+                  ) : (
+                    <RoleBadge role={invitation.role} size="sm" />
+                  )}
                   <span className="invitation-date">
                     <Clock size={12} />
                     {isExpired(invitation.expires_at)

@@ -180,6 +180,30 @@ export function useInvitations(workspaceId: string | null) {
     }
   };
 
+  const updateInvitationRole = async (invitationId: string, role: 'admin' | 'member'): Promise<Invitation | null> => {
+    if (!workspaceId) return null;
+
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/invitations/${invitationId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to update invitation role');
+      }
+
+      const updated = await res.json();
+      setInvitations(prev => prev.map(i => i.id === invitationId ? { ...i, role: updated.role } : i));
+      return updated;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      return null;
+    }
+  };
+
   return {
     invitations,
     loading,
@@ -187,6 +211,7 @@ export function useInvitations(workspaceId: string | null) {
     refetch: fetchInvitations,
     sendInvitation,
     revokeInvitation,
+    updateInvitationRole,
   };
 }
 

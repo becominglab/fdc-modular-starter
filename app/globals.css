@@ -2867,6 +2867,25 @@ html {
   gap: 12px;
 }
 
+.role-select {
+  padding: 4px 8px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.role-select:hover:not(:disabled) {
+  border-color: var(--ws-secondary);
+}
+
+.role-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .invitation-date {
   display: flex;
   align-items: center;
