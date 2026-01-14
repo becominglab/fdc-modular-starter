@@ -88,8 +88,11 @@ export async function POST(request: NextRequest) {
 
     const { name, slug, description } = validation.data;
 
+    // Service Role クライアントを使用してRLSをバイパス
+    const serviceClient = createServiceClient();
+
     // スラッグの重複チェック
-    const { data: existing } = await supabase
+    const { data: existing } = await serviceClient
       .from('workspaces')
       .select('id')
       .eq('slug', slug)
@@ -103,7 +106,7 @@ export async function POST(request: NextRequest) {
     }
 
     // ワークスペースを作成
-    const { data: workspace, error: createError } = await supabase
+    const { data: workspace, error: createError } = await serviceClient
       .from('workspaces')
       .insert({ name, slug, description: description || null })
       .select()
@@ -118,7 +121,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 作成者を OWNER として追加
-    const { error: memberError } = await supabase
+    const { error: memberError } = await serviceClient
       .from('workspace_members')
       .insert({
         workspace_id: workspace.id,
@@ -129,7 +132,7 @@ export async function POST(request: NextRequest) {
     if (memberError) {
       console.error('Error adding owner:', memberError);
       // ワークスペースを削除（ロールバック）
-      await supabase.from('workspaces').delete().eq('id', workspace.id);
+      await serviceClient.from('workspaces').delete().eq('id', workspace.id);
       return NextResponse.json(
         { error: 'ワークスペースの作成に失敗しました' },
         { status: 500 }

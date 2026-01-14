@@ -8,7 +8,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { Settings, AlertCircle } from 'lucide-react';
+import { Settings, AlertCircle, Plus, Loader2 } from 'lucide-react';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import {
   useWorkspaceMembers,
@@ -28,6 +28,34 @@ export default function AdminPage() {
   const [currentUserRole, setCurrentUserRole] = useState<WorkspaceRole>('member');
   const [loading, setLoading] = useState(true);
   const [noWorkspace, setNoWorkspace] = useState(false);
+  const [creating, setCreating] = useState(false);
+
+  // ワークスペース作成
+  const handleCreateWorkspace = async () => {
+    if (creating) return;
+    setCreating(true);
+    try {
+      const res = await fetch('/api/workspaces', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'マイワークスペース',
+          slug: `workspace-${Date.now()}`,
+          description: '自動作成されたワークスペース',
+        }),
+      });
+      if (res.ok) {
+        const workspace = await res.json();
+        setWorkspaceId(workspace.id);
+        setCurrentUserRole('owner');
+        setNoWorkspace(false);
+      }
+    } catch (err) {
+      console.error('Failed to create workspace:', err);
+    } finally {
+      setCreating(false);
+    }
+  };
 
   // デモモード or Supabaseモードでワークスペースを取得
   useEffect(() => {
@@ -120,7 +148,24 @@ export default function AdminPage() {
             <div className="empty-message">
               <AlertCircle size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
               <h3 style={{ marginBottom: '8px' }}>ワークスペースがありません</h3>
-              <p>ワークスペースを作成するか、既存のワークスペースへの招待を受け取ってください。</p>
+              <p style={{ marginBottom: '20px' }}>ワークスペースを作成して、メンバー管理を始めましょう。</p>
+              <button
+                onClick={handleCreateWorkspace}
+                disabled={creating}
+                className="btn btn-primary"
+              >
+                {creating ? (
+                  <>
+                    <Loader2 className="animate-spin" size={16} />
+                    作成中...
+                  </>
+                ) : (
+                  <>
+                    <Plus size={16} />
+                    ワークスペースを作成
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
