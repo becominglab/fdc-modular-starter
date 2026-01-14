@@ -23,6 +23,7 @@ import {
   LayoutGrid,
   Package,
   Settings,
+  ClipboardList,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -43,6 +44,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/brand', label: 'ブランド', icon: Palette },
   { href: '/lean-canvas', label: 'Lean Canvas', icon: LayoutGrid },
   { href: '/product-sections', label: '製品セクション', icon: Package },
+  { href: '/business-plan', label: 'ビジネスプラン', icon: ClipboardList },
   { href: '/mvv', label: 'MVV', icon: Target },
   { href: '/admin', label: '管理', icon: Settings },
 ];

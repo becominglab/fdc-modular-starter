@@ -2993,3 +2993,470 @@ html {
     min-width: unset;
   }
 }
+
+/*
+ * ビジネスプラン統合ダッシュボード（Phase 18）
+ */
+
+/* ページレイアウト */
+.business-plan-page {
+  padding: 24px 0;
+}
+
+.business-plan-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.plan-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 24px;
+}
+
+@media (max-width: 900px) {
+  .plan-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.plan-section {
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.plan-section .summary-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.plan-section .summary-header h3 {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.plan-section .edit-link {
+  color: var(--text-muted);
+  padding: 4px;
+}
+
+.plan-section .edit-link:hover {
+  color: var(--primary);
+}
+
+.empty-section {
+  text-align: center;
+  padding: 32px;
+  color: var(--text-muted);
+}
+
+.empty-section p {
+  margin-bottom: 12px;
+}
+
+/* 完成度インジケーター */
+.completion-indicator {
+  --completion-color: var(--success);
+}
+
+.completion-indicator.completion-medium {
+  --completion-color: var(--warning);
+}
+
+.completion-indicator.completion-low {
+  --completion-color: var(--danger);
+}
+
+.completion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+
+.completion-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.completion-percentage {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--completion-color);
+}
+
+.completion-bar {
+  height: 8px;
+  background: var(--bg-gray);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.completion-bar-fill {
+  height: 100%;
+  background: var(--completion-color);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.completion-stats {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.completion-details {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.completion-category {
+  padding: 12px;
+  background: var(--bg-gray);
+  border-radius: 8px;
+}
+
+.completion-category .category-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.completion-category .category-count {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-left: 8px;
+}
+
+.completion-category .category-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.completion-category .category-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 4px 8px;
+  background: var(--bg-white);
+  border-radius: 4px;
+}
+
+.completion-category .category-item.completed {
+  color: var(--success);
+}
+
+.completion-category .category-item svg {
+  flex-shrink: 0;
+}
+
+/* ブランドサマリー */
+.brand-summary .summary-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.brand-summary .brand-logo {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: var(--bg-gray);
+}
+
+.brand-summary .brand-name {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+}
+
+.brand-summary .brand-tagline {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.brand-summary .brand-story {
+  font-size: 13px;
+  color: var(--text-light);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Lean Canvas サマリー */
+.canvas-blocks-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.canvas-block-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--bg-gray);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.canvas-block-item.completed {
+  background: var(--success-alpha-10, rgba(34, 197, 94, 0.1));
+  color: var(--success);
+}
+
+.canvas-block-item .block-icon.completed {
+  color: var(--success);
+}
+
+.canvas-block-item .block-count {
+  margin-left: auto;
+  font-weight: 500;
+}
+
+/* 製品ファネルサマリー */
+.funnel-flow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 0;
+}
+
+.funnel-stage {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.funnel-stage .stage-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 24px;
+  background: var(--bg-gray);
+  border-radius: 8px;
+  border-top: 3px solid;
+  min-width: 140px;
+}
+
+.funnel-stage .stage-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.funnel-stage .stage-count {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.funnel-stage .stage-flagship {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.funnel-arrow {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* 収益シミュレーション */
+.revenue-simulation .revenue-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.revenue-simulation .revenue-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.revenue-totals {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 20px;
+}
+
+.revenue-total {
+  flex: 1;
+  padding: 16px;
+  background: var(--bg-gray);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.revenue-total .total-label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.revenue-total .total-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--success);
+}
+
+.revenue-total.annual .total-value {
+  color: var(--primary);
+}
+
+.revenue-breakdown table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.revenue-breakdown th,
+.revenue-breakdown td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.revenue-breakdown th {
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.revenue-breakdown .tier-badge {
+  font-size: 10px;
+  font-weight: 600;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.revenue-breakdown .subtotal {
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.revenue-note {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 12px;
+  text-align: right;
+}
+
+/* アクションアイテム */
+.action-items h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.action-items-complete {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px;
+  color: var(--success);
+}
+
+.action-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.action-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg-gray);
+  border-radius: 8px;
+  border-left: 3px solid var(--text-muted);
+}
+
+.action-item.priority-high {
+  border-left-color: var(--danger);
+}
+
+.action-item.priority-medium {
+  border-left-color: var(--warning);
+}
+
+.action-item.priority-low {
+  border-left-color: var(--text-muted);
+}
+
+.action-item .action-icon {
+  flex-shrink: 0;
+}
+
+.action-item .action-icon .priority-high {
+  color: var(--danger);
+}
+
+.action-item .action-icon .priority-medium {
+  color: var(--warning);
+}
+
+.action-item .action-icon .priority-low {
+  color: var(--text-muted);
+}
+
+.action-item .action-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.action-item .action-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-dark);
+}
+
+.action-item .action-description {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.action-item .action-link {
+  color: var(--primary);
+  padding: 8px;
+  border-radius: 6px;
+}
+
+.action-item .action-link:hover {
+  background: var(--primary-alpha-10, rgba(59, 130, 246, 0.1));
+}

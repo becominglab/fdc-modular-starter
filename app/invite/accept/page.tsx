@@ -130,11 +130,11 @@ function AcceptInvitationContent() {
           align-items: center;
           justify-content: center;
           padding: 20px;
-          background: var(--ws-bg);
+          background: #f3f4f6;
         }
 
         .invite-accept-card {
-          background: var(--ws-card-bg);
+          background: #ffffff;
           border-radius: 12px;
           padding: 48px;
           text-align: center;
@@ -146,12 +146,12 @@ function AcceptInvitationContent() {
         .invite-accept-card h1 {
           margin: 24px 0 12px;
           font-size: 24px;
-          color: var(--ws-text);
+          color: #111827;
         }
 
         .invite-accept-card p {
           margin: 0 0 24px;
-          color: var(--ws-text-muted);
+          color: #6b7280;
         }
 
         .invite-accept-card .btn {
@@ -169,21 +169,21 @@ function AcceptInvitationContent() {
         }
 
         .invite-accept-card .btn-primary {
-          background: var(--ws-secondary);
-          color: white;
+          background: #2563eb;
+          color: #ffffff;
         }
 
         .invite-accept-card .btn-primary:hover {
-          opacity: 0.9;
+          background: #1d4ed8;
         }
 
         .invite-accept-card .btn-secondary {
-          background: var(--ws-border);
-          color: var(--ws-text);
+          background: #e5e7eb;
+          color: #374151;
         }
 
         .invite-accept-card .btn-secondary:hover {
-          background: var(--ws-hover);
+          background: #d1d5db;
         }
 
         @keyframes spin {
@@ -214,10 +214,10 @@ function LoadingFallback() {
           align-items: center;
           justify-content: center;
           padding: 20px;
-          background: var(--ws-bg);
+          background: #f3f4f6;
         }
         .invite-accept-card {
-          background: var(--ws-card-bg);
+          background: #ffffff;
           border-radius: 12px;
           padding: 48px;
           text-align: center;
@@ -228,7 +228,7 @@ function LoadingFallback() {
         .invite-accept-card h1 {
           margin: 24px 0 12px;
           font-size: 24px;
-          color: var(--ws-text);
+          color: #111827;
         }
         @keyframes spin {
           to { transform: rotate(360deg); }
