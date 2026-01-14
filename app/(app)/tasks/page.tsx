@@ -1,12 +1,49 @@
 'use client';
 
-import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, Download, Loader2 } from 'lucide-react';
 import { useTasks } from '@/lib/hooks/useTasks';
+import { useAuth } from '@/lib/contexts/AuthContext';
+import { useExport } from '@/lib/hooks/useExport';
 import { TaskBoard, AddTaskForm, EditTaskForm } from '@/components/tasks';
 import type { Task, TaskStatus } from '@/lib/types/task';
 
 export default function TasksPage() {
+  const { user } = useAuth();
+  const [workspaceId, setWorkspaceId] = useState<string | null>(null);
+
+  // ワークスペースID取得
+  useEffect(() => {
+    if (user?.id) {
+      const fetchWorkspace = async () => {
+        try {
+          const res = await fetch('/api/workspaces');
+          if (res.ok) {
+            const data = await res.json();
+            if (data.workspaces && data.workspaces.length > 0) {
+              setWorkspaceId(data.workspaces[0].id);
+            }
+          }
+        } catch {
+          // ignore
+        }
+      };
+      fetchWorkspace();
+    } else {
+      const session = localStorage.getItem('fdc_session');
+      if (session) {
+        try {
+          const parsed = JSON.parse(session);
+          setWorkspaceId(parsed.workspaceId || 'demo-workspace');
+        } catch {
+          setWorkspaceId('demo-workspace');
+        }
+      }
+    }
+  }, [user]);
+
+  const { exporting, exportTasks } = useExport(workspaceId);
+
   const {
     tasksBySuit,
     stats,
@@ -58,13 +95,23 @@ export default function TasksPage() {
             アイゼンハワーマトリクスでタスクを管理
           </p>
         </div>
-        <button
-          onClick={() => setIsAddFormOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-        >
-          <Plus size={18} />
-          タスクを追加
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={exportTasks}
+            disabled={exporting === 'tasks'}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 disabled:opacity-50"
+          >
+            {exporting === 'tasks' ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
+            CSV出力
+          </button>
+          <button
+            onClick={() => setIsAddFormOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            <Plus size={18} />
+            タスクを追加
+          </button>
+        </div>
       </div>
 
       {/* 統計 */}

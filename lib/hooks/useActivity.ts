@@ -74,6 +74,10 @@ export function useActivity(workspaceId: string) {
     setCursor(null);
     setLogs([]);
     setHasMore(true);
+    // Immediately fetch with new filters
+    setTimeout(() => {
+      setLoading(false); // Reset loading to allow fetch
+    }, 0);
   }, []);
 
   const loadMore = useCallback(() => {
@@ -86,7 +90,7 @@ export function useActivity(workspaceId: string) {
     setCursor(null);
     setLogs([]);
     setHasMore(true);
-    // fetchLogs will be called by useEffect in the page
+    setLoading(false);
   }, []);
 
   return {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
+import { logActivityForUser } from '@/lib/utils/audit-log';
 
 const updateSchema = z.object({
   title: z.string().min(1).optional(),
@@ -80,6 +81,15 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: '更新に失敗しました' }, { status: 500 });
     }
 
+    // アクティビティログ記録
+    await logActivityForUser({
+      userId: user.id,
+      action: 'update',
+      resourceType: 'key_result',
+      resourceId: krId,
+      details: { title: data.title, changes: result.data },
+    });
+
     return NextResponse.json(data);
   } catch (error) {
     console.error('Key Result PATCH error:', error);
@@ -98,6 +108,14 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: '認証が必要です' }, { status: 401 });
     }
 
+    // 削除前にKR情報を取得（ログ用）
+    const { data: existingKr } = await supabase
+      .from('key_results')
+      .select('title')
+      .eq('id', krId)
+      .eq('user_id', user.id)
+      .single();
+
     // 紐付いたActionMapsの key_result_id をクリア
     await supabase
       .from('action_maps')
@@ -114,6 +132,15 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       console.error('Key Result delete error:', error);
       return NextResponse.json({ error: '削除に失敗しました' }, { status: 500 });
     }
+
+    // アクティビティログ記録
+    await logActivityForUser({
+      userId: user.id,
+      action: 'delete',
+      resourceType: 'key_result',
+      resourceId: krId,
+      details: { title: existingKr?.title },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

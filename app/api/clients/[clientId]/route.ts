@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { updateClientSchema } from '@/lib/validations/client';
+import { logActivityForUser } from '@/lib/utils/audit-log';
 
 interface RouteParams {
   params: Promise<{ clientId: string }>;
@@ -107,6 +108,15 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // アクティビティログ記録
+    await logActivityForUser({
+      userId: user.id,
+      action: 'update',
+      resourceType: 'client',
+      resourceId: clientId,
+      details: { name: client.name, company: client.company, changes: updateData },
+    });
+
     return NextResponse.json(client);
   } catch (error) {
     console.error('Unexpected error:', error);
@@ -134,6 +144,14 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // 削除前にクライアント情報を取得（ログ用）
+    const { data: existingClient } = await supabase
+      .from('clients')
+      .select('name, company')
+      .eq('id', clientId)
+      .eq('user_id', user.id)
+      .single();
+
     const { error } = await supabase
       .from('clients')
       .delete()
@@ -147,6 +165,15 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         { status: 500 }
       );
     }
+
+    // アクティビティログ記録
+    await logActivityForUser({
+      userId: user.id,
+      action: 'delete',
+      resourceType: 'client',
+      resourceId: clientId,
+      details: { name: existingClient?.name, company: existingClient?.company },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

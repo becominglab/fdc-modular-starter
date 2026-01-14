@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { updateProspectSchema, updateStatusSchema } from '@/lib/validations/prospect';
+import { logActivityForUser } from '@/lib/utils/audit-log';
 
 interface RouteParams {
   params: Promise<{ prospectId: string }>;
@@ -120,6 +121,16 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // アクティビティログ記録
+    const action = isStatusOnly ? 'status_change' : 'update';
+    await logActivityForUser({
+      userId: user.id,
+      action,
+      resourceType: 'prospect',
+      resourceId: prospectId,
+      details: { name: prospect.name, company: prospect.company, changes: updateData },
+    });
+
     return NextResponse.json(prospect);
   } catch (error) {
     console.error('Unexpected error:', error);
@@ -147,10 +158,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // 所有権の確認
+    // 削除前にリード情報を取得（ログ用）
     const { data: existingProspect } = await supabase
       .from('prospects')
-      .select('id')
+      .select('id, name, company')
       .eq('id', prospectId)
       .eq('user_id', user.id)
       .single();
@@ -175,6 +186,15 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         { status: 500 }
       );
     }
+
+    // アクティビティログ記録
+    await logActivityForUser({
+      userId: user.id,
+      action: 'delete',
+      resourceType: 'prospect',
+      resourceId: prospectId,
+      details: { name: existingProspect.name, company: existingProspect.company },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

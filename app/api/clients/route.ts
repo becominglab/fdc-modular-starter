@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClientSchema } from '@/lib/validations/client';
+import { logActivityForUser } from '@/lib/utils/audit-log';
 
 /**
  * GET /api/clients
@@ -102,6 +103,15 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    // アクティビティログ記録
+    await logActivityForUser({
+      userId: user.id,
+      action: 'create',
+      resourceType: 'client',
+      resourceId: client.id,
+      details: { name: client.name, company: client.company },
+    });
 
     return NextResponse.json(client, { status: 201 });
   } catch (error) {

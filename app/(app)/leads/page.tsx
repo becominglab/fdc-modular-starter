@@ -1,7 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Download, Loader2 } from 'lucide-react';
 import { useProspects } from '@/lib/hooks/useProspects';
+import { useAuth } from '@/lib/contexts/AuthContext';
+import { useExport } from '@/lib/hooks/useExport';
 import {
   ProspectFilters,
   KanbanView,
@@ -12,6 +15,41 @@ import {
 import type { Prospect, CreateProspectInput, UpdateProspectInput } from '@/lib/types/prospect';
 
 export default function LeadsPage() {
+  const { user } = useAuth();
+  const [workspaceId, setWorkspaceId] = useState<string | null>(null);
+
+  // ワークスペースID取得
+  useEffect(() => {
+    if (user?.id) {
+      const fetchWorkspace = async () => {
+        try {
+          const res = await fetch('/api/workspaces');
+          if (res.ok) {
+            const data = await res.json();
+            if (data.workspaces && data.workspaces.length > 0) {
+              setWorkspaceId(data.workspaces[0].id);
+            }
+          }
+        } catch {
+          // ignore
+        }
+      };
+      fetchWorkspace();
+    } else {
+      const session = localStorage.getItem('fdc_session');
+      if (session) {
+        try {
+          const parsed = JSON.parse(session);
+          setWorkspaceId(parsed.workspaceId || 'demo-workspace');
+        } catch {
+          setWorkspaceId('demo-workspace');
+        }
+      }
+    }
+  }, [user]);
+
+  const { exporting, exportProspects } = useExport(workspaceId);
+
   const {
     prospects,
     prospectsByStatus,
@@ -65,6 +103,24 @@ export default function LeadsPage() {
 
   return (
     <div className="py-6">
+      {/* ヘッダー */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">リード管理</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            見込み客の進捗を管理
+          </p>
+        </div>
+        <button
+          onClick={exportProspects}
+          disabled={exporting === 'prospects'}
+          className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 disabled:opacity-50"
+        >
+          {exporting === 'prospects' ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
+          CSV出力
+        </button>
+      </div>
+
       {/* 統計情報 */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4 mb-6">
         <div className="bg-white p-4 rounded-lg border">

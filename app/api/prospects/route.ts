@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createProspectSchema } from '@/lib/validations/prospect';
+import { logActivityForUser } from '@/lib/utils/audit-log';
 import type { ProspectStatus } from '@/lib/types/prospect';
 
 const VALID_STATUSES: ProspectStatus[] = ['new', 'approaching', 'negotiating', 'proposing', 'won', 'lost'];
@@ -116,6 +117,15 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    // アクティビティログ記録
+    await logActivityForUser({
+      userId: user.id,
+      action: 'create',
+      resourceType: 'prospect',
+      resourceId: prospect.id,
+      details: { name: prospect.name, company: prospect.company },
+    });
 
     return NextResponse.json(prospect, { status: 201 });
   } catch (error) {

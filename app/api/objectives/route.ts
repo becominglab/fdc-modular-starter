@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
+import { logActivityForUser } from '@/lib/utils/audit-log';
 
 const createSchema = z.object({
   title: z.string().min(1, 'タイトルは必須です'),
@@ -118,6 +119,15 @@ export async function POST(request: NextRequest) {
       console.error('Objective create error:', error);
       return NextResponse.json({ error: '作成に失敗しました' }, { status: 500 });
     }
+
+    // アクティビティログ記録
+    await logActivityForUser({
+      userId: user.id,
+      action: 'create',
+      resourceType: 'objective',
+      resourceId: data.id,
+      details: { title: data.title, period: data.period },
+    });
 
     return NextResponse.json(data, { status: 201 });
   } catch (error) {

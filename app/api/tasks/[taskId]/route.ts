@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
+import { logActivityForUser } from '@/lib/utils/audit-log';
 
 type Params = Promise<{ taskId: string }>;
 
@@ -83,6 +84,16 @@ export async function PATCH(
       return NextResponse.json({ error: 'タスクの更新に失敗しました' }, { status: 500 });
     }
 
+    // アクティビティログ記録
+    const action = result.data.status ? 'status_change' : 'update';
+    await logActivityForUser({
+      userId: user.id,
+      action,
+      resourceType: 'task',
+      resourceId: taskId,
+      details: { title: data.title, changes: result.data },
+    });
+
     return NextResponse.json(data);
   } catch (error) {
     console.error('Task PATCH error:', error);
@@ -104,6 +115,14 @@ export async function DELETE(
       return NextResponse.json({ error: '認証が必要です' }, { status: 401 });
     }
 
+    // 削除前にタスク情報を取得（ログ用）
+    const { data: task } = await supabase
+      .from('tasks')
+      .select('title')
+      .eq('id', taskId)
+      .eq('user_id', user.id)
+      .single();
+
     const { error } = await supabase
       .from('tasks')
       .delete()
@@ -113,6 +132,15 @@ export async function DELETE(
     if (error) {
       return NextResponse.json({ error: 'タスクの削除に失敗しました' }, { status: 500 });
     }
+
+    // アクティビティログ記録
+    await logActivityForUser({
+      userId: user.id,
+      action: 'delete',
+      resourceType: 'task',
+      resourceId: taskId,
+      details: { title: task?.title },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

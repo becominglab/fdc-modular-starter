@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
+import { logActivityForUser } from '@/lib/utils/audit-log';
 
 // バリデーションスキーマ
 const createTaskSchema = z.object({
@@ -89,6 +90,15 @@ export async function POST(request: NextRequest) {
       console.error('Task create error:', error);
       return NextResponse.json({ error: 'タスクの作成に失敗しました' }, { status: 500 });
     }
+
+    // アクティビティログ記録
+    await logActivityForUser({
+      userId: user.id,
+      action: 'create',
+      resourceType: 'task',
+      resourceId: data.id,
+      details: { title: data.title },
+    });
 
     return NextResponse.json(data, { status: 201 });
   } catch (error) {

@@ -97,20 +97,13 @@ export default function ActivityPage() {
     refresh();
   }, [refresh]);
 
-  // Initial fetch
-  useEffect(() => {
-    if (workspaceId && logs.length === 0) {
-      fetchLogs(true);
-    }
-  }, [workspaceId, logs.length, fetchLogs]);
-
-  // Fetch when filters change
+  // Initial fetch when workspaceId is set
   useEffect(() => {
     if (workspaceId) {
       fetchLogs(true);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters]);
+  }, [workspaceId]);
 
   // ローディング中
   if (pageLoading) {
