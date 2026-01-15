@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       action_items: {
@@ -211,36 +236,30 @@ export type Database = {
         Row: {
           action: string
           created_at: string | null
-          details: Json
+          details: Json | null
           id: string
-          ip_address: string | null
-          target_id: string | null
-          target_type: string | null
-          user_agent: string | null
+          resource_id: string | null
+          resource_type: string | null
           user_id: string
           workspace_id: string
         }
         Insert: {
           action: string
           created_at?: string | null
-          details?: Json
+          details?: Json | null
           id?: string
-          ip_address?: string | null
-          target_id?: string | null
-          target_type?: string | null
-          user_agent?: string | null
+          resource_id?: string | null
+          resource_type?: string | null
           user_id: string
           workspace_id: string
         }
         Update: {
           action?: string
           created_at?: string | null
-          details?: Json
+          details?: Json | null
           id?: string
-          ip_address?: string | null
-          target_id?: string | null
-          target_type?: string | null
-          user_agent?: string | null
+          resource_id?: string | null
+          resource_type?: string | null
           user_id?: string
           workspace_id?: string
         }
@@ -583,6 +602,42 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          link: string | null
+          message: string | null
+          metadata: Json | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          link?: string | null
+          message?: string | null
+          metadata?: Json | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          link?: string | null
+          message?: string | null
+          metadata?: Json | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       objectives: {
         Row: {
           created_at: string | null
@@ -725,6 +780,36 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          id: string
+          is_super_admin: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id: string
+          is_super_admin?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          is_super_admin?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       prospects: {
         Row: {
           company: string
@@ -761,6 +846,39 @@ export type Database = {
           status?: Database["public"]["Enums"]["prospect_status"]
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      security_events: {
+        Row: {
+          created_at: string | null
+          details: Json | null
+          event_type: string
+          id: string
+          ip_address: string | null
+          severity: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          details?: Json | null
+          event_type: string
+          id?: string
+          ip_address?: string | null
+          severity?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          details?: Json | null
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          severity?: string
+          user_agent?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -1062,6 +1180,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       prospect_status: [

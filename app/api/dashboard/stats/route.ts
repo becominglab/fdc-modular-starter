@@ -111,7 +111,7 @@ export async function GET() {
 
     const { data: activities } = await supabase
       .from('audit_logs')
-      .select('id, action, target_type, created_at, details')
+      .select('id, action, resource_type, created_at, details')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(10);
@@ -120,7 +120,7 @@ export async function GET() {
       recentActivity = activities.map((a) => ({
         id: a.id,
         action: a.action,
-        resource_type: a.target_type || '',
+        resource_type: a.resource_type || '',
         created_at: a.created_at || '',
         details: a.details as Record<string, unknown> | null,
       }));

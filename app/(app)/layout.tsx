@@ -29,6 +29,7 @@ import {
   Activity,
   type LucideIcon,
 } from 'lucide-react';
+import { NotificationBell } from '@/components/notifications';
 
 interface NavItem {
   href: string;
@@ -145,6 +146,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
           <p className="subtitle">Founders Direct Cockpit - 学習用スターター</p>
         </div>
         <div className="header-actions">
+          <NotificationBell />
           <a href="/profile" className="header-user-link">
             <User size={16} />
             <span>{displayName}</span>
